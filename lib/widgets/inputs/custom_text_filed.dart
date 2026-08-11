@@ -1,4 +1,4 @@
-import 'package:flutter_base/core/common_imports.dart';
+import 'package:rosewe_online_shopping/core/common_imports.dart';
 
 
 class CustomTextField extends StatefulWidget {
@@ -15,6 +15,8 @@ class CustomTextField extends StatefulWidget {
   final TextInputType? keyboardType;
   final Widget? suffixWidget;
   final Widget? prefixWidget;
+  final Widget? prefixIcon;
+  final double borderRadius;
   final double? hintTextSize;
   final FontWeight? fontWeight;
   final FocusNode? focusNode;
@@ -25,6 +27,8 @@ class CustomTextField extends StatefulWidget {
     required this.controller,
     this.isPassword = false,
     this.prefixWidget,
+    this.prefixIcon,
+    this.borderRadius = 15,
     this.errorMessage,
     this.suffixWidget,
     this.borderColor,
@@ -88,7 +92,7 @@ class _CustomTextFieldState extends State<CustomTextField> with WidgetsBindingOb
           width: 2.0, // Border width (set to 2.0 in this case)
         ),
         color: widget.errorMessage != null ? AppColors.errorColorLight : bgColor,
-        borderRadius: BorderRadius.all(Radius.circular(15)),
+        borderRadius: BorderRadius.all(Radius.circular(widget.borderRadius)),
       ),
       child: TextFormField(
         focusNode: _focusNode,
@@ -127,10 +131,10 @@ class _CustomTextFieldState extends State<CustomTextField> with WidgetsBindingOb
                       ),
                     )
                   : null),
-          prefixIcon: widget.prefixWidget != null
+          prefixIcon: (widget.prefixIcon ?? widget.prefixWidget) != null
               ? Padding(
                   padding: widget.prefixWidgetMargin ?? EdgeInsets.zero,
-                  child: widget.prefixWidget,
+                  child: widget.prefixIcon ?? widget.prefixWidget,
                 )
               : null,
           contentPadding: EdgeInsets.symmetric(
@@ -160,6 +164,8 @@ class CustomTextFieldCenterText extends StatefulWidget {
   final TextInputType? keyboardType;
   final Widget? suffixWidget;
   final Widget? prefixWidget;
+  final Widget? prefixIcon;
+  final double borderRadius;
   final double? hintTextSize;
   final FontWeight? fontWeight;
   final FocusNode? focusNode;
@@ -170,6 +176,8 @@ class CustomTextFieldCenterText extends StatefulWidget {
     required this.controller,
     this.isPassword = false,
     this.prefixWidget,
+    this.prefixIcon,
+    this.borderRadius = 15,
     this.errorMessage,
     this.suffixWidget,
     this.borderColor,
@@ -233,7 +241,7 @@ class _CustomTextFieldCenterTextState extends State<CustomTextFieldCenterText> w
           width: 2.0, // Border width (set to 2.0 in this case)
         ),
         color: widget.errorMessage != null ? AppColors.errorColorLight : bgColor,
-        borderRadius: BorderRadius.all(Radius.circular(15)),
+        borderRadius: BorderRadius.all(Radius.circular(widget.borderRadius)),
       ),
       child: TextFormField(
         focusNode: _focusNode,
@@ -274,10 +282,10 @@ class _CustomTextFieldCenterTextState extends State<CustomTextFieldCenterText> w
                       ),
                     )
                   : null),
-          prefixIcon: widget.prefixWidget != null
+          prefixIcon: (widget.prefixIcon ?? widget.prefixWidget) != null
               ? Padding(
                   padding: widget.prefixWidgetMargin ?? EdgeInsets.zero,
-                  child: widget.prefixWidget,
+                  child: widget.prefixIcon ?? widget.prefixWidget,
                 )
               : null,
           contentPadding: EdgeInsets.symmetric(

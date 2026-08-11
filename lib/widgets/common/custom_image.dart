@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:flutter_base/core/common_imports.dart';
+import 'package:rosewe_online_shopping/core/common_imports.dart';
 
 class CustomImage extends StatelessWidget {
   final String path;

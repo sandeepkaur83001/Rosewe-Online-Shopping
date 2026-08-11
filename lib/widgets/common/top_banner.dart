@@ -1,7 +1,6 @@
+import 'package:rosewe_online_shopping/core/common_imports.dart';
 
-import 'package:flutter/material.dart';
 
-import 'custom_text.dart';
 
 enum MessageType { info, warning, error, success }
 

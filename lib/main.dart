@@ -1,5 +1,5 @@
-import 'package:flutter_base/features/guide/base_guide.dart';
-import 'package:flutter_base/core/common_imports.dart';
+import 'package:rosewe_online_shopping/features/welcome/presentation/welcome_screen.dart';
+import 'package:rosewe_online_shopping/core/common_imports.dart';
 import 'package:get/get.dart';
 
 void main() async {
@@ -23,11 +23,11 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
+      title: 'Rosewe Online Shopping',
       theme: AppThemes.light,
       darkTheme: AppThemes.dark,
       themeMode: initialTheme,
-      home: BaseGuide(),
+      home: const WelcomeScreen(),
     );
   }
 }

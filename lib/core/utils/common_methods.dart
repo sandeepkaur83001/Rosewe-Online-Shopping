@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-import 'package:flutter_base/core/common_imports.dart';
+import 'package:rosewe_online_shopping/core/common_imports.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
 import 'dart:async';

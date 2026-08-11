@@ -1,7 +1,8 @@
-import 'package:flutter_base/core/common_imports.dart';
+import 'package:rosewe_online_shopping/core/common_imports.dart';
 
 class OrDividerLine extends StatelessWidget {
-  const OrDividerLine({super.key});
+  final String text;
+  const OrDividerLine({super.key, this.text = "OR"});
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -12,10 +13,10 @@ class OrDividerLine extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8.0),
           child: CustomText(
-            text: "OR",
+            text: text,
             fontWeight: FontWeight.w600,
             fontSize: 18,
-            textColor: AppColors.whiteColor,
+            textColor: AppColors.grayShade,
           ),
         ),
         Expanded(

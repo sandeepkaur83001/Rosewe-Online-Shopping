@@ -1,4 +1,4 @@
-import 'package:flutter_base/core/common_imports.dart';
+import 'package:rosewe_online_shopping/core/common_imports.dart';
 
 class GlossyButton extends StatelessWidget {
   final String text;
@@ -120,12 +120,12 @@ class CustomButton extends StatelessWidget {
     required this.text,
     this.onSubmit,
     this.height = 60,
-    this.elevation = 7,
+    this.elevation = 0,
     this.widthDecoration = 2,
     this.width = double.infinity,
     this.borderRadius = 18,
     this.buttonColor = AppColors.custom_button_color,
-    this.borderColor = AppColors.custom_button_color,
+    this.borderColor = Colors.transparent,
     this.shadowColor,
     this.textColor = AppColors.whiteColor,
     this.fontSize = 18,
@@ -165,6 +165,8 @@ class CustomButton extends StatelessWidget {
                 fontSize: fontSize,
                 textColor: textColor,
                 maxLine: maxLine,
+                fontFamily: 'Roboto',
+
               ),
             ),
           ),

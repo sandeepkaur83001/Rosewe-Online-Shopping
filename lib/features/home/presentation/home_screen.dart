@@ -77,7 +77,17 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     super.dispose();
   }
 
-  void _showNotificationPromo() {
+  static bool _promoShown = false;
+
+  void _showNotificationPromo() async {
+    if (_promoShown) return;
+    
+    var status = await Permission.notification.status;
+    if (status.isGranted) return;
+
+    if (!mounted) return;
+    _promoShown = true;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -107,75 +117,98 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.whiteColor,
-      appBar: AppBar(
-        backgroundColor: AppColors.whiteColor,
-        elevation: 0,
-        centerTitle: true,
-        title: Image.asset(
-          'assets/images/rosewe_logo_clean.png',
-          height: 20,
-          fit: BoxFit.contain,
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.favorite_border, color: AppColors.blackColor),
-          onPressed: () => RouteNavigate().navigateToPush(context, const FavoritesScreen()),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: AppColors.blackColor),
-            onPressed: () => RouteNavigate().navigateToPush(context, const SearchScreen()),
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          NotificationListener<ScrollNotification>(
-            onNotification: (ScrollNotification notification) {
-              if (notification is ScrollUpdateNotification) {
-                if (notification.metrics.pixels < 0) {
-                  setState(() {
-                    _pullDistance = -notification.metrics.pixels;
-                  });
-                } else if (_pullDistance != 0) {
-                  setState(() {
-                    _pullDistance = 0;
-                  });
-                }
-              }
-              return false;
-            },
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Column(
-                children: [
-                  _buildTopSection(),
-                  _buildGracefulShoresSection(),
-                  _buildSecondaryMovingCarousel(),
-                  const SizedBox(height: 20),
-                  _buildPromoBanner(),
-                  const SizedBox(height: 10),
-                  _buildCategoryGrid(),
-                  const SizedBox(height: 30),
-                  _buildTheNewNewSection(),
-                  const SizedBox(height: 20),
-                  _buildDailyCheckInSection(),
-                  const SizedBox(height: 20),
-                  _buildTabs(),
-                  _buildProductGrid(),
-                  const SizedBox(height: 80), // Padding for bottom banner
-                ],
+    return BaseScreen(
+
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: SafeArea(
+          top: true,
+          bottom: false,
+          child: AppBar(
+            backgroundColor: AppColors.whiteColor,
+            elevation: 0,
+            centerTitle: true,
+            title: Image.asset(
+              'assets/images/rosewe_logo_clean.png',
+              height: 20,
+              fit: BoxFit.contain,
+            ),
+            leading: IconButton(
+              icon: Image.asset(
+                'assets/images/heart.png',
+                height: 20,
+                fit: BoxFit.contain,
+              ),
+              onPressed: () => RouteNavigate().navigateToPush(
+                context,
+                const FavoritesScreen(),
               ),
             ),
+            actions: [
+              IconButton(
+                icon: Image.asset(
+                  'assets/images/search_icon.png',
+                  height: 20,
+                  fit: BoxFit.contain,
+                ),
+                onPressed: () => RouteNavigate().navigateToPush(
+                  context,
+                  const SearchScreen(),
+                ),
+              ),
+            ],
           ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: _bottomSigninFooter(context),
-          ),
-        ],
+        ),
+      ),
+      child: SafeArea(
+        child: Stack(
+          children: [
+            NotificationListener<ScrollNotification>(
+              onNotification: (ScrollNotification notification) {
+                if (notification is ScrollUpdateNotification) {
+                  if (notification.metrics.pixels < 0) {
+                    setState(() {
+                      _pullDistance = -notification.metrics.pixels;
+                    });
+                  } else if (_pullDistance != 0) {
+                    setState(() {
+                      _pullDistance = 0;
+                    });
+                  }
+                }
+                return false;
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    _buildTopSection(),
+                    _buildGracefulShoresSection(),
+                    _buildSecondaryMovingCarousel(),
+                    // const SizedBox(height: 20),
+                    _buildPromoBanner(),
+                    // const SizedBox(height: 10),
+                    _buildCategoryGrid(),
+                    const SizedBox(height: 30),
+                    _buildTheNewNewSection(),
+                    const SizedBox(height: 20),
+                    _buildDailyCheckInSection(),
+                    const SizedBox(height: 20),
+                    _buildTabs(),
+                    _buildProductGrid(),
+                    const SizedBox(height: 80), // Padding for bottom banner
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: _bottomSigninFooter(context),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -277,25 +310,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildGracefulShoresSection() {
-    return Container(
-      height: 350,
-      color: Colors.white,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            flex: 5,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 00, horizontal: 0),
-              child: Image.asset(
-                'assets/images/graceful.png',
-                fit: BoxFit.contain,
-              ),
-            ),
-          ),
-
-        ],
-      ),
+    return Image.asset(
+      'assets/images/graceful.jpg',
+      width: double.infinity,
+      fit: BoxFit.fitWidth,
     );
   }
 
@@ -676,11 +694,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       child: Row(
         children: [
           const Expanded(
-            child: CustomText(text: 'Sign in for the best experience', fontSize: 14, fontWeight: FontWeight.w500),
+            child: CustomText(text: 'Sign in for the best experience', fontSize: 18, fontWeight: FontWeight.w500),
           ),
           CustomButton(
             text: 'Sign In',
             width: 100,
+            padding: EdgeInsets.zero,
             height: 36,
             borderRadius: 0,
             borderColor: Colors.transparent,

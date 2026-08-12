@@ -5,8 +5,7 @@ class SearchScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.whiteColor,
+    return BaseScreen(
       appBar: AppBar(
         backgroundColor: AppColors.whiteColor,
         elevation: 0,
@@ -51,7 +50,7 @@ class SearchScreen extends StatelessWidget {
         ),
         titleSpacing: 0,
       ),
-      body: SingleChildScrollView(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

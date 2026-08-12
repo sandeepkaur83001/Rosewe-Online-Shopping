@@ -1,9 +1,26 @@
 import 'package:rosewe_online_shopping/core/common_imports.dart';
 import 'package:rosewe_online_shopping/features/auth/presentation/login_screen.dart';
 import 'package:rosewe_online_shopping/features/profile/presentation/about_rosewe_screen.dart';
+import 'package:rosewe_online_shopping/core/common_imports.dart';
+import 'package:rosewe_online_shopping/features/auth/presentation/login_screen.dart';
+import 'package:rosewe_online_shopping/features/profile/presentation/about_rosewe_screen.dart';
+import 'package:rosewe_online_shopping/features/profile/presentation/country_selection_screen.dart';
+import 'package:rosewe_online_shopping/features/profile/presentation/currency_selection_screen.dart';
+import 'package:rosewe_online_shopping/features/profile/presentation/complete_profile_screen.dart';
+import 'package:rosewe_online_shopping/features/auth/presentation/setup_password_screen.dart';
+import 'package:rosewe_online_shopping/features/profile/presentation/empty_order_screen.dart';
+import 'package:rosewe_online_shopping/features/profile/presentation/contact_us_screen.dart';
 
-class AccountSettingsScreen extends StatelessWidget {
+class AccountSettingsScreen extends StatefulWidget {
   const AccountSettingsScreen({super.key});
+
+  @override
+  State<AccountSettingsScreen> createState() => _AccountSettingsScreenState();
+}
+
+class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
+  String _selectedCountry = 'United States';
+  String _selectedCurrency = 'USD';
 
   void _showRatingDialog(BuildContext context) {
     showDialog(
@@ -78,8 +95,8 @@ class AccountSettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+    return BaseScreen(
+      color: const Color(0xFFF7F7F7),
       appBar: AppBar(
         backgroundColor: AppColors.whiteColor,
         elevation: 0.5,
@@ -95,7 +112,7 @@ class AccountSettingsScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: SingleChildScrollView(
+      child: SingleChildScrollView(
         child: Column(
           children: [
             const SizedBox(height: 15),
@@ -105,16 +122,44 @@ class AccountSettingsScreen extends StatelessWidget {
               }),
             ]),
             _buildGroup([
-              _settingsItem(context, 'Country/Region', value: 'US'),
-              _settingsItem(context, 'Currency', value: 'USD'),
+              _settingsItem(context, 'Country/Region', value: _selectedCountry, onTap: () async {
+                final result = await RouteNavigate().navigateToPush(
+                  context, 
+                  CountrySelectionScreen(currentCountry: _selectedCountry),
+                );
+                if (result != null) {
+                  setState(() {
+                    _selectedCountry = result;
+                  });
+                }
+              }),
+              _settingsItem(context, 'Currency', value: _selectedCurrency, onTap: () async {
+                final result = await RouteNavigate().navigateToPush(
+                  context, 
+                  CurrencySelectionScreen(currentCurrency: _selectedCurrency),
+                );
+                if (result != null) {
+                  setState(() {
+                    _selectedCurrency = result;
+                  });
+                }
+              }),
             ]),
             _buildGroup([
-              _settingsItem(context, 'My Profile'),
-              _settingsItem(context, 'Edit Password'),
-              _settingsItem(context, 'Address Book'),
+              _settingsItem(context, 'My Profile', onTap: () {
+                RouteNavigate().navigateToPush(context, const CompleteProfileScreen(email: 'user@example.com'));
+              }),
+              _settingsItem(context, 'Edit Password', onTap: () {
+                RouteNavigate().navigateToPush(context, const SetupPasswordScreen());
+              }),
+              _settingsItem(context, 'Address Book', onTap: () {
+                RouteNavigate().navigateToPush(context, const EmptyOrderScreen());
+              }),
             ]),
             _buildGroup([
-              _settingsItem(context, 'Contact Us'),
+              _settingsItem(context, 'Contact Us', onTap: () {
+                RouteNavigate().navigateToPush(context, const ContactUsScreen());
+              }),
               _settingsItem(context, 'Push Notifications', value: 'OFF'),
               _settingsItem(context, 'About Rosewe', onTap: () {
                 RouteNavigate().navigateToPush(context, const AboutRoseweScreen());

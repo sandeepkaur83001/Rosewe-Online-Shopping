@@ -32,7 +32,9 @@ class _MainNavScreenState extends State<MainNavScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_selectedIndex],
+      body: SafeArea(
+        child: _screens[_selectedIndex],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
@@ -41,31 +43,35 @@ class _MainNavScreenState extends State<MainNavScreen> {
         unselectedItemColor: AppColors.grayShade,
         showSelectedLabels: true,
         showUnselectedLabels: true,
+        selectedFontSize: 16,
+        unselectedFontSize: 14,
         items: [
           BottomNavigationBarItem(
-            icon: _navIcon(
-              "assets/images/home_icon.png",
-              false,
+            icon: Image.asset(
+              "assets/images/unselected_home_icon.png",
+              width: 24,
+              height: 24,
             ),
-            activeIcon: _navIcon(
+            activeIcon: Image.asset(
               "assets/images/home_icon.png",
-              true,
+              width: 24,
+              height: 24,
             ),
             label: 'Home',
           ),
-
           BottomNavigationBarItem(
-            icon: _navIcon(
+            icon: Image.asset(
               "assets/images/categories_icon.png",
-              false,
+              width: 24,
+              height: 24,
             ),
-            activeIcon: _navIcon(
-              "assets/images/categories_icon.png",
-              true,
+            activeIcon: Image.asset(
+              "assets/images/selected_categories_icon.png",
+              width: 24,
+              height: 24,
             ),
             label: 'Category',
           ),
-
           BottomNavigationBarItem(
             icon: _navIcon(
               "assets/images/deals_icon.png",
@@ -77,27 +83,29 @@ class _MainNavScreenState extends State<MainNavScreen> {
             ),
             label: 'New',
           ),
-
           BottomNavigationBarItem(
-            icon: _navIcon(
-              "assets/images/bag_icon.png",
-              false,
+            icon: Image.asset(
+              "assets/images/unselected_bag.png",
+              width: 28,
+              height: 28,
             ),
-            activeIcon: _navIcon(
-              "assets/images/bag_icon.png",
-              true,
+            activeIcon: Image.asset(
+              "assets/images/selected_bag.png",
+              width: 30,
+              height: 30,
             ),
             label: 'Bag',
           ),
-
           BottomNavigationBarItem(
-            icon: _navIcon(
-              "assets/images/profile_icon.png",
-              false,
+            icon: Image.asset(
+              "assets/images/unselected_me.png",
+              width: 24,
+              height: 24,
             ),
-            activeIcon: _navIcon(
-              "assets/images/profile_icon.png",
-              true,
+            activeIcon: Image.asset(
+              "assets/images/selected_me.png",
+              width: 24,
+              height: 24,
             ),
             label: 'Me',
           ),
@@ -116,8 +124,9 @@ class _MainNavScreenState extends State<MainNavScreen> {
       ),
       child: Image.asset(
         asset,
-        width: 24,
-        height: 24,
+        width: 30,
+        height: 30,
+        fit: BoxFit.contain ,
       ),
     );
   }

@@ -23,16 +23,18 @@ class ThemeService {
 }
 
 class AppThemes {
-  static final light = ThemeData.light().copyWith(
+  static final light = ThemeData(
+    brightness: Brightness.light,
     primaryColor: AppColors.custom_button_color,
     scaffoldBackgroundColor: AppColors.backgroundColor,
     cardColor: AppColors.textFieldColor,
     dividerColor: AppColors.dividerColor,
+    fontFamily: 'Humanist521',
     appBarTheme: const AppBarTheme(
       backgroundColor: AppColors.whiteColor,
       elevation: 0,
       iconTheme: IconThemeData(color: AppColors.blackColor),
-      titleTextStyle: TextStyle(color: AppColors.blackColor, fontSize: 18, fontWeight: FontWeight.bold),
+      titleTextStyle: TextStyle(color: AppColors.blackColor, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Humanist521'),
     ),
     colorScheme: const ColorScheme.light(
       primary: AppColors.custom_button_color,
@@ -42,21 +44,23 @@ class AppThemes {
       onSurface: AppColors.blackColor,
     ),
     textTheme: const TextTheme(
-      bodyLarge: TextStyle(color: AppColors.register_text_color),
-      bodyMedium: TextStyle(color: AppColors.register_text_color),
+      bodyLarge: TextStyle(color: AppColors.register_text_color, fontFamily: 'Humanist521'),
+      bodyMedium: TextStyle(color: AppColors.register_text_color, fontFamily: 'Humanist521'),
     ),
   );
 
-  static final dark = ThemeData.dark().copyWith(
+  static final dark = ThemeData(
+    brightness: Brightness.dark,
     primaryColor: AppColors.custom_button_color,
     scaffoldBackgroundColor: const Color(0xFF121212),
     cardColor: const Color(0xFF1E1E1E),
     dividerColor: Colors.white24,
+    fontFamily: 'Humanist521',
     appBarTheme: const AppBarTheme(
       backgroundColor: Color(0xFF1E1E1E),
       elevation: 0,
       iconTheme: IconThemeData(color: AppColors.whiteColor),
-      titleTextStyle: TextStyle(color: AppColors.whiteColor, fontSize: 18, fontWeight: FontWeight.bold),
+      titleTextStyle: TextStyle(color: AppColors.whiteColor, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Humanist521'),
     ),
     colorScheme: const ColorScheme.dark(
       primary: AppColors.custom_button_color,
@@ -66,8 +70,8 @@ class AppThemes {
       onSurface: AppColors.whiteColor,
     ),
     textTheme: const TextTheme(
-      bodyLarge: TextStyle(color: Colors.white),
-      bodyMedium: TextStyle(color: Colors.white70),
+      bodyLarge: TextStyle(color: Colors.white, fontFamily: 'Humanist521'),
+      bodyMedium: TextStyle(color: Colors.white70, fontFamily: 'Humanist521'),
     ),
   );
 }

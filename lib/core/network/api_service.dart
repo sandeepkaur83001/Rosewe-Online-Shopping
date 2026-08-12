@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:rosewe_online_shopping/core/common_imports.dart';
 
+import 'api_response.dart';
+
 class ApiService {
   // Use EnvConfig for URLs
   static String get _baseUrl => EnvConfig.baseUrl;
@@ -279,6 +281,28 @@ class ApiService {
       }
     } catch (e) {
       CommonApiClass().normalPrintJson("API_ERROR_IN_DECODING$e");
+    }
+  }
+
+  /// Helper to process raw response into ApiResponse
+  static ApiResponse<T> processResponse<T>(
+    http.Response response,
+    T Function(dynamic json) fromJson,
+  ) {
+    try {
+      final decoded = jsonDecode(response.body);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        // Assuming the actual data is in a 'data' field or is the root object
+        final data = decoded is Map && decoded.containsKey('data') 
+            ? fromJson(decoded['data']) 
+            : fromJson(decoded);
+        return ApiResponse.success(data, statusCode: response.statusCode);
+      } else {
+        final message = decoded is Map ? decoded['message'] ?? 'Unknown error' : 'Error: ${response.statusCode}';
+        return ApiResponse.error(message, statusCode: response.statusCode);
+      }
+    } catch (e) {
+      return ApiResponse.error("Failed to parse response: $e", statusCode: response.statusCode);
     }
   }
 

@@ -56,6 +56,7 @@ class CustomText extends StatelessWidget {
       color: effectiveTextColor,
       letterSpacing: letterSpacing,
       fontStyle: fontStyle,
+      fontFamily: fontFamily ?? 'Humanist521',
     );
 
     if (fontFamily != null) {

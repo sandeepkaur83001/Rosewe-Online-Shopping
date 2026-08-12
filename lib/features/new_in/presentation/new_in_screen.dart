@@ -27,8 +27,7 @@ class _NewInScreenState extends State<NewInScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.whiteColor,
+    return BaseScreen(
       appBar: AppBar(
         backgroundColor: AppColors.whiteColor,
         elevation: 0,
@@ -40,7 +39,7 @@ class _NewInScreenState extends State<NewInScreen> {
           fontStyle: FontStyle.italic,
         ),
       ),
-      body: NotificationListener<ScrollNotification>(
+      child: NotificationListener<ScrollNotification>(
         onNotification: (ScrollNotification notification) {
           if (notification is ScrollUpdateNotification) {
             if (notification.metrics.pixels < 0) {

@@ -26,22 +26,22 @@ class RouteNavigate {
     }
   }
 
-  Future<void> navigateToPush(
+  Future<dynamic> navigateToPush(
     BuildContext context,
     Widget nextScreen, [
-    void Function()? setState,
+    void Function()? onReturn,
   ]) async {
     if (context.mounted) {
-      await Navigator.push(
+      final result = await Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => nextScreen),
-      ).then((_) {
-       
-        if (setState != null) {
-          setState();
-        }
-      });
+      );
+      if (onReturn != null) {
+        onReturn();
+      }
+      return result;
     }
+    return null;
   }
 
   Future<void> navigateToPushAnimateBottomSheet(

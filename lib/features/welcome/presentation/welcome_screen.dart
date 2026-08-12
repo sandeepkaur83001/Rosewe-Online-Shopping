@@ -7,8 +7,8 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
+    return BaseScreen(
+      child: Stack(
         children: [
           // Background Image
           Positioned.fill(
@@ -33,57 +33,55 @@ class WelcomeScreen extends StatelessWidget {
             ),
           ),
           // Content
-          SafeArea(
-            child: Column(
-              children: [
-                const Spacer(flex: 5),
-                // Logo
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 100.0),
-                  child: Image.asset(
-                    'assets/images/rosewe_logo_clean.png',
+          Column(
+            children: [
+              const Spacer(flex: 5),
+              // Logo
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 100.0),
+                child: Image.asset(
+                  'assets/images/rosewe_logo_clean.png',
 
-                    fit: BoxFit.contain,
-                  ),
+                  fit: BoxFit.contain,
                 ),
-                const SizedBox(height: 8),
-                const CustomText(
-                  text: 'Enjoy the Spring and Summer Promotion',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
+              ),
+              const SizedBox(height: 8),
+              const CustomText(
+                text: 'Enjoy the Spring and Summer Promotion',
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+                textColor: AppColors.blackColor,
+              ),
+              const Spacer(flex: 4),
+              // Buttons
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: CustomButton(
+                  text: 'SIGN IN/CREATE ACCOUNT',
+                  buttonColor: AppColors.whiteColor,
                   textColor: AppColors.blackColor,
-                ),
-                const Spacer(flex: 4),
-                // Buttons
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: CustomButton(
-                    text: 'SIGN IN/CREATE ACCOUNT',
-                    buttonColor: AppColors.whiteColor,
-                    textColor: AppColors.blackColor,
-                    borderRadius: 4,
-                    borderColor: AppColors.whiteColor,
-                    elevation: 0,
-                    onSubmit: () {
-                      RouteNavigate().navigateToPush(context, const LoginScreen());
-                    },
-                  ),
-                ),
-                const SizedBox(height: 20),
-                GestureDetector(
-                  onTap: () {
-                    RouteNavigate().navigateToPushAndRemoveUntil(context, const MainNavScreen());
+                  borderRadius: 4,
+                  borderColor: AppColors.whiteColor,
+                  elevation: 0,
+                  onSubmit: () {
+                    RouteNavigate().navigateToPush(context, const LoginScreen());
                   },
-                  child: const CustomText(
-                    text: 'Maybe Later',
-                    fontSize: 16,
-                    textColor: AppColors.whiteColor,
-                    decoration: TextDecoration.underline,
-                  ),
                 ),
-                const SizedBox(height: 40),
-              ],
-            ),
+              ),
+              const SizedBox(height: 20),
+              GestureDetector(
+                onTap: () {
+                  RouteNavigate().navigateToPushAndRemoveUntil(context, const MainNavScreen());
+                },
+                child: const CustomText(
+                  text: 'Maybe Later',
+                  fontSize: 16,
+                  textColor: AppColors.whiteColor,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+              const SizedBox(height: 40),
+            ],
           ),
         ],
       ),

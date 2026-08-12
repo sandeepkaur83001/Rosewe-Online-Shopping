@@ -1,13 +1,26 @@
 import 'package:rosewe_online_shopping/core/common_imports.dart';
-import 'package:rosewe_online_shopping/features/main_nav/presentation/main_nav_screen.dart';
+import 'package:rosewe_online_shopping/features/auth/presentation/register_screen.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController _emailController = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.whiteColor,
+    return BaseScreen(
+      color: AppColors.whiteColor,
       appBar: AppBar(
         backgroundColor: AppColors.whiteColor,
         elevation: 0,
@@ -16,7 +29,7 @@ class LoginScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: SingleChildScrollView(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 30),
         child: Column(
           children: [
@@ -28,7 +41,7 @@ class LoginScreen extends StatelessWidget {
               fit: BoxFit.contain,
             ),
             const SizedBox(height: 25),
-             CustomText(
+             const CustomText(
               text: 'Sign In/Create Account',
               fontSize: 21,
               textColor: Colors.black,
@@ -42,6 +55,7 @@ class LoginScreen extends StatelessWidget {
                 border: Border.all(color: AppColors.blackColor.withValues(alpha: 0.8)),
               ),
               child: TextField(
+                controller: _emailController,
                 decoration: InputDecoration(
                   hintText: '',
                   prefixIcon: Padding(
@@ -73,10 +87,12 @@ class LoginScreen extends StatelessWidget {
               fontWeight: FontWeight.bold,
               margin: EdgeInsets.zero,
               onSubmit: () {
-                // API Call Implementation (Commented for now)
-                // DummyApiImplementation.loginUser("user@example.com");
-
-                RouteNavigate().navigateToPushAndRemoveUntil(context, const MainNavScreen());
+                if (_emailController.text.isNotEmpty) {
+                  RouteNavigate().navigateToPush(
+                    context, 
+                    RegisterScreen(email: _emailController.text),
+                  );
+                }
               },
             ),
             const SizedBox(height: 60),

@@ -7,6 +7,9 @@ class BaseScreen extends StatelessWidget {
   final bool? resizeToAvoidBottomInset;
   final GlobalKey<TopBannerState>? topBannerKey;
   final GlobalKey<ScaffoldState>? scaffoldKey;
+  final PreferredSizeWidget? appBar;
+  final Widget? bottomNavigationBar;
+  final Widget? floatingActionButton;
 
   const BaseScreen({
     super.key,
@@ -15,6 +18,9 @@ class BaseScreen extends StatelessWidget {
     required this.child,
     this.resizeToAvoidBottomInset,
     this.color = AppColors.whiteColor,
+    this.appBar,
+    this.bottomNavigationBar,
+    this.floatingActionButton,
   });
 
   @override
@@ -26,8 +32,11 @@ class BaseScreen extends StatelessWidget {
       child: Scaffold(
         drawerEnableOpenDragGesture: false,
         key: scaffoldKey, // assign key
-        backgroundColor: color == AppColors.whiteColor ? Theme.of(context).scaffoldBackgroundColor : color,
+        backgroundColor: color,
         resizeToAvoidBottomInset: resizeToAvoidBottomInset ?? true,
+        appBar: appBar,
+        bottomNavigationBar: bottomNavigationBar,
+        floatingActionButton: floatingActionButton,
       body: SafeArea(
         child: Column(
           children: [

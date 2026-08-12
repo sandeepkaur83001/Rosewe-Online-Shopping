@@ -117,3 +117,7 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+  fonts:
+    - family: Humanist521
+      fonts:
+        - asset: assets/font/Humanist521BT.ttf

@@ -1,6 +1,8 @@
 import 'package:rosewe_online_shopping/core/common_imports.dart';
 import 'package:rosewe_online_shopping/features/auth/presentation/login_screen.dart';
 import 'package:rosewe_online_shopping/features/profile/presentation/account_settings_screen.dart';
+import 'package:rosewe_online_shopping/features/profile/controller/profile_controller.dart';
+import 'package:get/get.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -11,25 +13,38 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   int _selectedTab = 0; // 0 for My Favorites, 1 for You May Also Like
+  final ProfileController _controller = Get.put(ProfileController());
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xFFFFF1F1),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              _buildHeader(context),
-              _buildOrderSection(),
-              _buildWalletSection(),
-              _buildServiceSection(),
-              _buildTabSection(),
-              if (_selectedTab == 0) _buildFavoritesContent() else _buildYouMayAlsoLikeContent(),
-            ],
-          ),
-        ),
+    return BaseScreen(
+      color: const Color(0xFFFFF1F1),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFFFF1F1),
+        elevation: 0,
+        toolbarHeight: 0, // Hidden app bar but provides status bar styling
       ),
+      child: Obx(() {
+        if (_controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        return RefreshIndicator(
+          onRefresh: _controller.fetchProfile,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                _buildHeader(context),
+                _buildOrderSection(),
+                _buildWalletSection(),
+                _buildServiceSection(),
+                _buildTabSection(),
+                if (_selectedTab == 0) _buildFavoritesContent() else _buildYouMayAlsoLikeContent(),
+              ],
+            ),
+          ),
+        );
+      }),
     );
   }
 
@@ -44,8 +59,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onTap: () => RouteNavigate().navigateToPush(context, const LoginScreen()),
             child: Row(
               children: [
-                const CustomText(
-                  text: 'Sign In/Create Account',
+                CustomText(
+                  text: _controller.userProfile.value?.name ?? 'Sign In/Create Account',
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),

@@ -29,12 +29,9 @@ class _BagScreenState extends State<BagScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.whiteColor,
+    return BaseScreen(
       appBar: AppBar(
         backgroundColor: AppColors.whiteColor,
-
-
         centerTitle: true,
         title: const CustomText(
           text: 'My Bag',
@@ -49,7 +46,7 @@ class _BagScreenState extends State<BagScreen> {
           ),
         ],
       ),
-      body: NotificationListener<ScrollNotification>(
+      child: NotificationListener<ScrollNotification>(
         onNotification: (ScrollNotification notification) {
           if (notification is ScrollUpdateNotification) {
             if (notification.metrics.pixels < 0) {

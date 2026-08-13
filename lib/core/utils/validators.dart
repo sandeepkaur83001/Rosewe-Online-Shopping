@@ -42,6 +42,24 @@ class Validators {
     return null;
   }
 
+  /// Rosewe specific password validation
+  /// Password must contain 6 characters minimum and at least 1 letter.
+  static String? validateRosewePassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Password is required';
+    }
+
+    if (value.length < 6) {
+      return 'Password must be at least 6 characters';
+    }
+
+    if (!RegExp(r'[a-zA-Z]').hasMatch(value)) {
+      return 'Password must contain at least one letter';
+    }
+
+    return null;
+  }
+
   /// Strong Password
   static String? strongPassword(String? value) {
     if (value == null || value.isEmpty) {

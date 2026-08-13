@@ -25,7 +25,7 @@ class ThemeService {
 class AppThemes {
   static final light = ThemeData(
     brightness: Brightness.light,
-    primaryColor: AppColors.custom_button_color,
+    primaryColor: AppColors.primaryColor,
     scaffoldBackgroundColor: AppColors.backgroundColor,
     cardColor: AppColors.textFieldColor,
     dividerColor: AppColors.dividerColor,
@@ -37,7 +37,7 @@ class AppThemes {
       titleTextStyle: TextStyle(color: AppColors.blackColor, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Humanist521'),
     ),
     colorScheme: const ColorScheme.light(
-      primary: AppColors.custom_button_color,
+      primary: AppColors.primaryColor,
       secondary: AppColors.secondaryColor,
       surface: AppColors.whiteColor,
       error: AppColors.errorColor,
@@ -51,7 +51,7 @@ class AppThemes {
 
   static final dark = ThemeData(
     brightness: Brightness.dark,
-    primaryColor: AppColors.custom_button_color,
+    primaryColor: AppColors.primaryColor,
     scaffoldBackgroundColor: const Color(0xFF121212),
     cardColor: const Color(0xFF1E1E1E),
     dividerColor: Colors.white24,
@@ -63,7 +63,7 @@ class AppThemes {
       titleTextStyle: TextStyle(color: AppColors.whiteColor, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Humanist521'),
     ),
     colorScheme: const ColorScheme.dark(
-      primary: AppColors.custom_button_color,
+      primary: AppColors.primaryColor,
       secondary: AppColors.secondaryColor,
       surface: Color(0xFF1E1E1E),
       error: AppColors.errorColor,

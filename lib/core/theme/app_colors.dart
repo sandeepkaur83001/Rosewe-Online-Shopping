@@ -2,6 +2,7 @@ import 'package:rosewe_online_shopping/core/common_imports.dart';
 
 class AppColors {
   static const dividerLineOrColor = Color(0xFFE1E1E1);
+  static const primaryColor = Color(0xFFFDE2DC);
   static const secondaryColor = Color(0xFF3B82F6);
   static const whiteColor = Color(0xFFFFFFFF);
   static const backgroundColor = Color(0xFFF3F3F4);

@@ -87,12 +87,16 @@ class _LoginScreenState extends State<LoginScreen> {
               fontWeight: FontWeight.bold,
               margin: EdgeInsets.zero,
               onSubmit: () {
-                if (_emailController.text.isNotEmpty) {
-                  RouteNavigate().navigateToPush(
-                    context, 
-                    RegisterScreen(email: _emailController.text),
-                  );
+                final emailError = Validators.email(_emailController.text);
+                if (emailError != null) {
+                  CustomToast.showToast(message: emailError);
+                  return;
                 }
+                
+                RouteNavigate().navigateToPush(
+                  context, 
+                  RegisterScreen(email: _emailController.text),
+                );
               },
             ),
             const SizedBox(height: 60),

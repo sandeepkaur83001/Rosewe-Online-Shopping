@@ -1,4 +1,5 @@
 import 'package:rosewe_online_shopping/core/common_imports.dart';
+import 'package:rosewe_online_shopping/features/profile/presentation/country_selection_screen.dart';
 
 class CompleteProfileScreen extends StatefulWidget {
   final String email;
@@ -44,11 +45,11 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
             const SizedBox(height: 15),
             
             _buildLabel('Country *'),
-            _buildTextField(_countryController, 'Select Country'),
+            _buildCountryField(),
             const SizedBox(height: 15),
 
             _buildLabel('Gender *'),
-            _buildTextField(_genderController, ''),
+            _buildGenderDropdown(),
             const SizedBox(height: 15),
 
             _buildLabel('Birthday *'),
@@ -121,13 +122,85 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     );
   }
 
+  Widget _buildCountryField() {
+    return GestureDetector(
+      onTap: _selectCountry,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: Colors.grey[300]!),
+        ),
+        child: AbsorbPointer(
+          child: TextField(
+            controller: _countryController,
+            decoration: const InputDecoration(
+              hintText: 'Select Country',
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              suffixIcon: Icon(Icons.arrow_drop_down, color: Colors.grey),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGenderDropdown() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButtonFormField<String>(
+          initialValue: _genderController.text,
+          items: ['Privacy', 'Male', 'Female'].map((String value) {
+            return DropdownMenuItem<String>(
+              value: value,
+              child: CustomText(text: value, fontSize: 14),
+            );
+          }).toList(),
+          onChanged: (newValue) {
+            if (newValue != null) {
+              setState(() {
+                _genderController.text = newValue;
+              });
+            }
+          },
+          decoration: const InputDecoration(
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.symmetric(horizontal: 12),
+          ),
+          icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _selectCountry() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CountrySelectionScreen(currentCountry: _countryController.text),
+      ),
+    );
+    if (result != null && result is String) {
+      setState(() {
+        _countryController.text = result;
+      });
+    }
+  }
+
   Widget _buildChip(String label, Set<String> selectionSet) {
     bool isSelected = selectionSet.contains(label);
     return GestureDetector(
       onTap: () {
         setState(() {
-          if (isSelected) selectionSet.remove(label);
-          else selectionSet.add(label);
+          if (isSelected) {
+            selectionSet.remove(label);
+          } else {
+            selectionSet.add(label);
+          }
         });
       },
       child: Container(

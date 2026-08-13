@@ -174,6 +174,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
               fontWeight: FontWeight.bold,
               margin: EdgeInsets.zero,
               onSubmit: () {
+                final emailError = Validators.email(_emailController.text);
+                if (emailError != null) {
+                  CustomToast.showToast(message: emailError);
+                  return;
+                }
+
+                final passwordError = Validators.validateRosewePassword(_passwordController.text);
+                if (passwordError != null) {
+                  CustomToast.showToast(message: passwordError);
+                  return;
+                }
+
                 RouteNavigate().navigateToPushAndRemoveUntil(context, const MainNavScreen());
               },
             ),

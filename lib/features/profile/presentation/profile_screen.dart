@@ -18,7 +18,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return BaseScreen(
-      color: const Color(0xFFFFF1F1),
+      color: AppColors.primaryColor,
       appBar: AppBar(
         backgroundColor: const Color(0xFFFFF1F1),
         elevation: 0,

@@ -1,4 +1,5 @@
 import 'package:rosewe_online_shopping/core/common_imports.dart';
+import 'package:rosewe_online_shopping/widgets/common/custom_webview_screen.dart';
 
 class AboutRoseweScreen extends StatelessWidget {
   const AboutRoseweScreen({super.key});
@@ -24,23 +25,43 @@ class AboutRoseweScreen extends StatelessWidget {
       ),
       body: ListView(
         children: [
-          // const SizedBox(height: 20),
-          // Center(
-          //   child: Image.asset(
-          //     'assets/images/app_logo.png',
-          //     height: 100,
-          //     width: 100,
-          //     fit: BoxFit.contain,
-          //   ),
-          // ),
-          // const SizedBox(height: 20),
           _settingsItem(context, 'Shipping Info'),
           _settingsItem(context, 'Return & Exchange'),
           _settingsItem(context, 'Payment Methods'),
           _settingsItem(context, 'Pro Program'),
-          _settingsItem(context, 'Term of Use'),
-          _settingsItem(context, 'Privacy Policy'),
-          _settingsItem(context, 'Rosewe Story'),
+          _settingsItem(
+            context, 
+            'Terms of Use',
+            onTap: () => RouteNavigate().navigateToPush(
+              context, 
+              const CustomWebViewScreen(
+                title: 'Terms of Use', 
+                url: 'http://162.241.68.61/rosewe/terms-and-conditions',
+              ),
+            ),
+          ),
+          _settingsItem(
+            context, 
+            'Privacy Policy',
+            onTap: () => RouteNavigate().navigateToPush(
+              context, 
+              const CustomWebViewScreen(
+                title: 'Privacy Policy', 
+                url: 'http://162.241.68.61/rosewe/privacy-policy',
+              ),
+            ),
+          ),
+          _settingsItem(
+            context, 
+            'Rosewe Story',
+            onTap: () => RouteNavigate().navigateToPush(
+              context, 
+              const CustomWebViewScreen(
+                title: 'Rosewe Story', 
+                url: 'http://162.241.68.61/rosewe/about-us',
+              ),
+            ),
+          ),
         ],
       ),
     );

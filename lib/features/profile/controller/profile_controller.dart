@@ -9,35 +9,121 @@ class ProfileController extends GetxController {
   var isLoading = false.obs;
   var userProfile = Rxn<UserProfile>();
   var errorMessage = ''.obs;
+  var isLoggedIn = false.obs;
+
+  var categories = <ProfileCategoryData>[].obs;
+  var styles = <ProfileStyleData>[].obs;
+  var countries = <ProfileCountryData>[].obs;
+  var currencies = <ProfileCurrencyData>[].obs;
 
   @override
   void onInit() {
     super.onInit();
-    // fetchProfile(); // Uncomment when ready to fetch from API
+    checkLoginStatus();
+    fetchInitialData();
   }
 
-  Future<void> fetchProfile() async {
+  Future<void> checkLoginStatus() async {
+    isLoggedIn.value = Globals.BearerToken != null && Globals.BearerToken!.isNotEmpty;
+    if (!isLoggedIn.value) {
+      final hasToken = await SharedManager.getToken();
+      isLoggedIn.value = hasToken ?? false;
+      if (isLoggedIn.value) {
+        await fetchProfile(showLoader: false);
+      }
+    } else {
+      await fetchProfile(showLoader: false);
+    }
+  }
+
+  Future<void> fetchInitialData() async {
     try {
       isLoading(true);
-      errorMessage('');
-      final response = await _repository.getProfile();
-      if (response.success) {
-        userProfile.value = response.data;
-      } else {
-        errorMessage.value = response.message ?? 'Failed to load profile';
-      }
-    } catch (e) {
-      errorMessage.value = 'An unexpected error occurred';
-      debugPrint("Error in ProfileController: $e");
+      await Future.wait([
+        fetchProfile(showLoader: false),
+        fetchCategories(),
+        fetchStyles(),
+        fetchCountries(),
+        fetchCurrencies(),
+      ]);
     } finally {
       isLoading(false);
     }
   }
 
+  Future<void> fetchCategories() async {
+    try {
+      final response = await ApiImplementation.getProfileCategories(showLoader: true);
+      if (response != null && response.status == 200) {
+        categories.value = response.data ?? [];
+      }
+    } catch (e) {
+      debugPrint("Error fetching categories: $e");
+    }
+  }
+
+  Future<void> fetchStyles() async {
+    try {
+      final response = await ApiImplementation.getProfileStyles(showLoader: true);
+      if (response != null && response.status == 200) {
+        styles.value = response.data ?? [];
+      }
+    } catch (e) {
+      debugPrint("Error fetching styles: $e");
+    }
+  }
+
+  Future<void> fetchCountries() async {
+    try {
+      final response = await ApiImplementation.getProfileCountries(showLoader: true);
+      if (response != null && response.status == 200) {
+        countries.value = response.data ?? [];
+      }
+    } catch (e) {
+      debugPrint("Error fetching countries: $e");
+    }
+  }
+
+  Future<void> fetchCurrencies() async {
+    try {
+      final response = await ApiImplementation.getProfileCurrencies(showLoader: true);
+      if (response != null && response.status == 200) {
+        currencies.value = response.data ?? [];
+      }
+    } catch (e) {
+      debugPrint("Error fetching currencies: $e");
+    }
+  }
+
+  Future<void> fetchProfile({bool showLoader = true}) async {
+    try {
+      if (!showLoader) isLoading(true);
+      errorMessage('');
+      debugPrint("Fetching profile... Token: ${Globals.BearerToken}");
+      final response = await _repository.getProfile(showLoader: showLoader);
+      if (response != null && response.status == 200) {
+        debugPrint("Profile fetched successfully: ${response.data?.name}");
+        userProfile.value = response.data;
+        isLoggedIn.value = true;
+      } else {
+        debugPrint("Failed to fetch profile: ${response?.message} (Status: ${response?.status})");
+        errorMessage.value = response?.message ?? 'Failed to load profile';
+        if (response?.status == 401) {
+          isLoggedIn.value = false;
+        }
+      }
+    } catch (e) {
+      debugPrint("Error in ProfileController.fetchProfile: $e");
+      errorMessage.value = 'An unexpected error occurred';
+    } finally {
+      if (!showLoader) isLoading(false);
+    }
+  }
+
   void logout() {
-    // Implement logout logic, clear tokens, etc.
     userProfile.value = null;
     Globals.BearerToken = null;
-    // Navigate to login or home
+    isLoggedIn.value = false;
+    SharedManager.deleteSpecificSharePreference(SharedConstants.LOGIN_MODEL);
   }
 }

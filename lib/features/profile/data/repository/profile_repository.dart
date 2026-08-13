@@ -1,29 +1,27 @@
 import 'package:rosewe_online_shopping/core/common_imports.dart';
-import 'package:rosewe_online_shopping/core/network/api_response.dart';
 import 'package:rosewe_online_shopping/features/profile/data/models/profile_model.dart';
 
 class ProfileRepository {
-  Future<ApiResponse<UserProfile>> getProfile() async {
+  Future<ProfileResponse?> getProfile({bool showLoader = true}) async {
     try {
-      final response = await ApiService.get(ApiEndpoints.getProfile);
-      return ApiService.processResponse<UserProfile>(
-        response,
-        (json) => UserProfile.fromJson(json),
-      );
+      final response = await ApiService.get(ApiEndpoints.profile, showLoader: showLoader);
+      if (response.statusCode == 200) {
+        return ProfileResponse.fromJson(jsonDecode(response.body));
+      }
+      return null;
     } catch (e) {
-      return ApiResponse.error("Repository error: $e");
+      debugPrint("Repository error: $e");
+      return null;
     }
   }
 
-  Future<ApiResponse<bool>> updateProfile(Map<String, dynamic> data) async {
+  Future<bool> updateProfile(Map<String, dynamic> data, {bool showLoader = true}) async {
     try {
-      final response = await ApiService.put(ApiEndpoints.updateProfile, body: data);
-      return ApiService.processResponse<bool>(
-        response,
-        (json) => json['success'] ?? false,
-      );
+      final response = await ApiService.put(ApiEndpoints.profile, body: data, showLoader: showLoader);
+      return response.statusCode == 200;
     } catch (e) {
-      return ApiResponse.error("Repository error: $e");
+      debugPrint("Repository error: $e");
+      return false;
     }
   }
 }

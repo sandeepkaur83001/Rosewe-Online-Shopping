@@ -1,5 +1,7 @@
+import 'package:get/get.dart';
 import 'package:rosewe_online_shopping/core/common_imports.dart';
 import 'package:rosewe_online_shopping/features/profile/presentation/country_selection_screen.dart';
+import 'package:rosewe_online_shopping/features/profile/controller/profile_controller.dart';
 
 class CompleteProfileScreen extends StatefulWidget {
   final String email;
@@ -10,17 +12,19 @@ class CompleteProfileScreen extends StatefulWidget {
 }
 
 class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
+  final ProfileController _controller = Get.find<ProfileController>();
   final TextEditingController _countryController = TextEditingController();
   final TextEditingController _genderController = TextEditingController(text: 'Privacy');
   final TextEditingController _birthdayController = TextEditingController(text: '0000-00-00');
 
-  final List<String> _categories = ['Tops', 'Dresses', 'Swimwear', 'Jumpsuits', 'Plus Size'];
-  final List<String> _styles = [
-    'Basics', 'Casual', 'Elegant', 'Sexy', 'Vintage', 'Vacation', 'Party', 'wedding_guest'
-  ];
-
   final Set<String> _selectedCategories = {};
   final Set<String> _selectedStyles = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _countryController.text = _controller.userProfile.value?.name ?? ''; // Assuming name might store country or just a placeholder
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,54 +39,59 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
         ),
         title: const CustomText(text: 'Complete Profile', fontSize: 18, fontWeight: FontWeight.bold),
       ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildLabel('Email'),
-            _buildReadOnlyField(widget.email),
-            const SizedBox(height: 15),
-            
-            _buildLabel('Country *'),
-            _buildCountryField(),
-            const SizedBox(height: 15),
+      child: Obx(() {
+        if (_controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildLabel('Email'),
+              _buildReadOnlyField(widget.email),
+              const SizedBox(height: 15),
+              
+              _buildLabel('Country *'),
+              _buildCountryField(),
+              const SizedBox(height: 15),
 
-            _buildLabel('Gender *'),
-            _buildGenderDropdown(),
-            const SizedBox(height: 15),
+              _buildLabel('Gender *'),
+              _buildGenderDropdown(),
+              const SizedBox(height: 15),
 
-            _buildLabel('Birthday *'),
-            _buildTextField(_birthdayController, '0000-00-00'),
-            const SizedBox(height: 25),
+              _buildLabel('Birthday *'),
+              _buildTextField(_birthdayController, '0000-00-00'),
+              const SizedBox(height: 25),
 
-            _buildLabel('Favorite Categories *'),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _categories.map((cat) => _buildChip(cat, _selectedCategories)).toList(),
-            ),
-            const SizedBox(height: 25),
+              _buildLabel('Favorite Categories *'),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _controller.categories.map((cat) => _buildChip(cat.name ?? '', _selectedCategories)).toList(),
+              ),
+              const SizedBox(height: 25),
 
-            _buildLabel('Favorite Style *'),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _styles.map((style) => _buildChip(style, _selectedStyles)).toList(),
-            ),
-            const SizedBox(height: 40),
+              _buildLabel('Favorite Style *'),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _controller.styles.map((style) => _buildChip(style.name ?? '', _selectedStyles)).toList(),
+              ),
+              const SizedBox(height: 40),
 
-            CustomButton(
-              text: 'Confirm',
-              buttonColor: AppColors.blackColor,
-              textColor: AppColors.whiteColor,
-              borderRadius: 0,
-              height: 45,
-              onSubmit: () => Navigator.pop(context),
-            ),
-          ],
-        ),
-      ),
+              CustomButton(
+                text: 'Confirm',
+                buttonColor: AppColors.blackColor,
+                textColor: AppColors.whiteColor,
+                borderRadius: 0,
+                height: 45,
+                onSubmit: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        );
+      }),
     );
   }
 

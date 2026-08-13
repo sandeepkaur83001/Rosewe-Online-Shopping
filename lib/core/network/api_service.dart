@@ -24,15 +24,19 @@ class ApiService {
   static Future<http.Response> get( 
     String endpoint, {
     Map<String, String>? headers,
+    bool showLoader = true,
   }) async {
     final dialog = Get.find<DialogService>();
-    dialog.showLoader();
+    if (showLoader) {
+      dialog.showLoader();
+    }
     try {
+      final requestHeaders = headers ?? defaultHeaders;
       CommonApiClass().normalPrintJson("API_RESPONSE_URL '$_baseUrl$endpoint");
-      CommonApiClass().normalPrintJson("API_HEADER '$headers");
+      CommonApiClass().normalPrintJson("API_HEADER '$requestHeaders");
       final response = await http.get(
         Uri.parse('$_baseUrl$endpoint'),
-        headers: headers,
+        headers: requestHeaders,
       );
       _handleResponse(response);
       return response;
@@ -49,7 +53,9 @@ class ApiService {
       _handleResponse(responses);
       return responses;
     } finally {
-      dialog.hideLoader();
+      if (showLoader) {
+        dialog.hideLoader();
+      }
     }
   }
 
@@ -57,17 +63,21 @@ class ApiService {
     String endpoint, {
     Map<String, String>? headers,
     Object? body,
+    bool showLoader = true,
   }) async {
     final dialog = Get.find<DialogService>();
-    dialog.showLoader();
+    if (showLoader) {
+      dialog.showLoader();
+    }
+    final requestHeaders = headers ?? defaultHeaders;
     CommonApiClass().normalPrintJson("API_RESPONSE_URL '$_baseUrl$endpoint");
-    CommonApiClass().normalPrintJson("API_HEADER '$headers");
+    CommonApiClass().normalPrintJson("API_HEADER '$requestHeaders");
     CommonApiClass().normalPrintJson("API_BODY '${jsonEncode(body)}");
     try {
       final jsonBody = body ?? {};
       final response = await http.put(
         Uri.parse('$_baseUrl$endpoint'),
-        headers: headers,
+        headers: requestHeaders,
         body: jsonEncode(jsonBody),
       );
       _handleResponse(response);
@@ -86,7 +96,9 @@ class ApiService {
 
       return responses;
     } finally {
-      dialog.hideLoader();
+      if (showLoader) {
+        dialog.hideLoader();
+      }
     }
   }
 
@@ -94,17 +106,21 @@ class ApiService {
     String endpoint, {
     Map<String, String>? headers,
     Object? body,
+    bool showLoader = true,
   }) async {
     final dialog = Get.find<DialogService>();
-    dialog.showLoader();
+    if (showLoader) {
+      dialog.showLoader();
+    }
+    final requestHeaders = headers ?? defaultHeaders;
     CommonApiClass().normalPrintJson("API_RESPONSE_URL '$_baseUrl$endpoint");
-    CommonApiClass().normalPrintJson("API_HEADER '$headers");
+    CommonApiClass().normalPrintJson("API_HEADER '$requestHeaders");
     CommonApiClass().normalPrintJson("API_BODY '${jsonEncode(body)}");
     try {
       final jsonBody = body ?? {};
       final response = await http.post(
         Uri.parse('$_baseUrl$endpoint'),
-        headers: headers,
+        headers: requestHeaders,
         body: jsonEncode(jsonBody),
       );
       _handleResponse(response);
@@ -123,7 +139,9 @@ class ApiService {
 
       return responses;
     } finally {
-      dialog.hideLoader();
+      if (showLoader) {
+        dialog.hideLoader();
+      }
     }
   }
 
@@ -131,28 +149,34 @@ class ApiService {
     String endpoint, {
     Map<String, String>? headers,
     Object? body,
-    required List<File> files,
+    List<File>? files,
     String fileType = 'file',
+    bool showLoader = true,
   }) async {
     final dialog = Get.find<DialogService>();
-    dialog.showLoader();
+    if (showLoader) {
+      dialog.showLoader();
+    }
+    final requestHeaders = headers ?? defaultHeaders;
     CommonApiClass().normalPrintJson("API_RESPONSE_URL '$_baseUrl$endpoint");
-    CommonApiClass().normalPrintJson("API_HEADER '$headers");
+    CommonApiClass().normalPrintJson("API_HEADER '$requestHeaders");
     CommonApiClass().normalPrintJson("API_BODY '$body");
     try {
       final request = http.MultipartRequest(
         'POST',
         Uri.parse('$_baseUrl$endpoint'),
       );
-      request.headers.addAll(headers ?? {});
+      request.headers.addAll(requestHeaders);
 
       if (body != null) {
         request.fields.addAll(body is Map ? body.cast<String, String>() : {});
       }
-      for (int i = 0; i < files.length; i++) {
-        request.files.add(
-          await http.MultipartFile.fromPath(fileType, files[i].path),
-        );
+      if (files != null) {
+        for (int i = 0; i < files.length; i++) {
+          request.files.add(
+            await http.MultipartFile.fromPath(fileType, files[i].path),
+          );
+        }
       }
       final response = await http.Response.fromStream(await request.send());
       _handleResponse(response);
@@ -170,7 +194,9 @@ class ApiService {
 
       return responses;
     } finally {
-      dialog.hideLoader();
+      if (showLoader) {
+        dialog.hideLoader();
+      }
     }
   }
 
@@ -180,19 +206,22 @@ class ApiService {
     Map<String, String>? body,
     required List<File> files,
     required String fileName,
+    bool showLoader = true,
   }) async {
     final dialog = Get.find<DialogService>();
-    dialog.showLoader();
+    if (showLoader) {
+      dialog.showLoader();
+    }
+    final requestHeaders = headers ?? defaultHeaders;
     CommonApiClass().normalPrintJson("API_RESPONSE_URL '$_baseUrl$endpoint");
-    CommonApiClass().normalPrintJson("API_HEADER '$headers");
+    CommonApiClass().normalPrintJson("API_HEADER '$requestHeaders");
     CommonApiClass().normalPrintJson("API_BODY '$body");
-    // DateTime startTime = DateTime.now();
     try {
       final request = http.MultipartRequest(
         'PUT',
         Uri.parse('$_baseUrl$endpoint'),
       );
-      request.headers.addAll(headers ?? {});
+      request.headers.addAll(requestHeaders);
       if (body != null) {
         request.fields.addAll(body);
       }
@@ -218,7 +247,9 @@ class ApiService {
 
       return responses;
     } finally {
-      dialog.hideLoader();
+      if (showLoader) {
+        dialog.hideLoader();
+      }
     }
   }
 
@@ -226,16 +257,20 @@ class ApiService {
     String endpoint, {
     Map<String, String>? headers,
     Object? body,
+    bool showLoader = true,
   }) async {
     final dialog = Get.find<DialogService>();
-    dialog.showLoader();
+    if (showLoader) {
+      dialog.showLoader();
+    }
+    final requestHeaders = headers ?? defaultHeaders;
     CommonApiClass().normalPrintJson("API_RESPONSE_URL '$_baseUrl$endpoint");
-    CommonApiClass().normalPrintJson("API_HEADER '$headers");
+    CommonApiClass().normalPrintJson("API_HEADER '$requestHeaders");
     CommonApiClass().normalPrintJson("API_BODY '${jsonEncode(body)}");
     try {
       final response = await http.delete(
         Uri.parse('$_baseUrl$endpoint'),
-        headers: headers,
+        headers: requestHeaders,
         body: jsonEncode(body),
       );
 
@@ -254,7 +289,9 @@ class ApiService {
 
       return responses;
     } finally {
-      dialog.hideLoader();
+      if (showLoader) {
+        dialog.hideLoader();
+      }
     }
   }
 

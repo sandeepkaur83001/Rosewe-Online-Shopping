@@ -1,4 +1,5 @@
 import 'package:rosewe_online_shopping/core/common_imports.dart';
+import 'package:rosewe_online_shopping/features/auth/presentation/login_password_screen.dart';
 import 'package:rosewe_online_shopping/features/auth/presentation/register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -95,9 +96,24 @@ class _LoginScreenState extends State<LoginScreen> {
                 
                 RouteNavigate().navigateToPush(
                   context, 
+                  LoginPasswordScreen(email: _emailController.text),
+                );
+              },
+            ),
+            const SizedBox(height: 20),
+            GestureDetector(
+              onTap: () {
+                RouteNavigate().navigateToPush(
+                  context, 
                   RegisterScreen(email: _emailController.text),
                 );
               },
+              child: const CustomText(
+                text: 'New to Rosewe? Create Account',
+                fontSize: 14,
+                textColor: AppColors.blackColor,
+                decoration: TextDecoration.underline,
+              ),
             ),
             const SizedBox(height: 60),
             // Divider

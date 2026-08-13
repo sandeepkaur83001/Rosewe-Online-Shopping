@@ -5,6 +5,8 @@ import 'package:rosewe_online_shopping/features/auth/presentation/login_screen.d
 import 'package:rosewe_online_shopping/widgets/common/notification_promo_dialog.dart';
 import 'package:rosewe_online_shopping/features/search/presentation/search_screen.dart';
 import 'package:rosewe_online_shopping/features/favorites/presentation/favorites_screen.dart';
+import 'package:get/get.dart';
+import 'package:rosewe_online_shopping/features/profile/controller/profile_controller.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,6 +19,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   late TabController _tabController;
   late PageController _bannerController;
   late PageController _secondaryCarouselController;
+  final ProfileController _profileController = Get.find<ProfileController>();
 
   Timer? _timer;
   int _currentBannerPage = 0;
@@ -201,12 +204,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 ),
               ),
             ),
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: _bottomSigninFooter(context),
-            ),
+            Obx(() {
+              debugPrint("HomeScreen Login Status: ${_profileController.isLoggedIn.value}");
+              if (_profileController.isLoggedIn.value) {
+                return const SizedBox.shrink();
+              }
+              return Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: _bottomSigninFooter(context),
+              );
+            }),
           ],
         ),
       ),

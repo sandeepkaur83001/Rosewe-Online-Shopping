@@ -1,8 +1,11 @@
+import 'dart:io';
 import 'package:flutter/gestures.dart';
+import 'package:get/get.dart';
 import 'package:rosewe_online_shopping/core/common_imports.dart';
 import 'package:rosewe_online_shopping/features/main_nav/presentation/main_nav_screen.dart';
 import 'package:rosewe_online_shopping/features/guide/terms_of_use_screen.dart';
 import 'package:rosewe_online_shopping/features/guide/privacy_policy_screen.dart';
+import 'package:rosewe_online_shopping/features/profile/controller/profile_controller.dart';
 
 class RegisterScreen extends StatefulWidget {
   final String email;
@@ -173,21 +176,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
               fontSize: 16,
               fontWeight: FontWeight.bold,
               margin: EdgeInsets.zero,
-              onSubmit: () {
-                final emailError = Validators.email(_emailController.text);
-                if (emailError != null) {
-                  CustomToast.showToast(message: emailError);
-                  return;
-                }
-
-                final passwordError = Validators.validateRosewePassword(_passwordController.text);
-                if (passwordError != null) {
-                  CustomToast.showToast(message: passwordError);
-                  return;
-                }
-
-                RouteNavigate().navigateToPushAndRemoveUntil(context, const MainNavScreen());
+              onSubmit: _handleRegister,
+            ),
+            const SizedBox(height: 20),
+            GestureDetector(
+              onTap: () {
+                Navigator.pop(context);
               },
+              child: const CustomText(
+                text: 'Already have an account? Sign In',
+                fontSize: 14,
+                textColor: AppColors.blackColor,
+                decoration: TextDecoration.underline,
+              ),
             ),
             const SizedBox(height: 20),
             // T&C text
@@ -222,5 +223,64 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       ),
     );
+  }
+
+  void _handleRegister() async {
+    final emailError = Validators.email(_emailController.text);
+    if (emailError != null) {
+      CustomToast.showToast(message: emailError);
+      return;
+    }
+
+    final passwordError = Validators.validateRosewePassword(_passwordController.text);
+    if (passwordError != null) {
+      CustomToast.showToast(message: passwordError);
+      return;
+    }
+
+    final dialog = Get.find<DialogService>();
+    dialog.showLoader();
+
+    try {
+      // API Implementation
+      final position = await LocationService.getCurrentLocationLangLong();
+      final deviceType = Platform.isAndroid ? 'android' : 'ios';
+      final deviceToken = 'temp_token';
+
+      final body = {
+        'email': _emailController.text,
+        'password': _passwordController.text,
+        'subscribe_to_emails': _signUpForEmails ? '1' : '0',
+        'device_type': deviceType,
+        'device_token': deviceToken,
+        'latitude': position?.latitude.toString() ?? '',
+        'longitude': position?.longitude.toString() ?? '',
+      };
+
+      final response = await ApiImplementation.register(body, showLoader: false);
+
+      if (response != null && (response.status == 200 || response.status == 201)) {
+        if (response.data?.token != null) {
+          Globals.BearerToken = response.data!.token;
+          await SharedManager.setStringSharePreferences(
+            SharedConstants.LOGIN_MODEL,
+            jsonEncode(response.toJson()),
+          );
+          final profileController = Get.find<ProfileController>();
+          await profileController.checkLoginStatus();
+          profileController.fetchProfile(showLoader: false);
+        }
+        CustomToast.showToast(message: response.message ?? 'Account created successfully');
+        if (mounted) {
+          RouteNavigate().navigateToPushAndRemoveUntil(context, const MainNavScreen());
+        }
+      } else {
+        if (response != null && response.message != null) {
+          CustomToast.showToast(message: response.message!);
+        }
+      }
+    } finally {
+      dialog.hideLoader();
+    }
   }
 }

@@ -79,14 +79,19 @@ class SharedManager {
   // }
 
   static Future<bool?> getToken() async {
-    // return true;
     if (Globals.BearerToken != null && Globals.BearerToken!.isNotEmpty) {
       CommonApiClass().normalPrintJson("USER_BEARER_TOKEN  ${Globals.BearerToken}");
       return true;
     } else {
       String? data = await getStringSharePreferences(SharedConstants.LOGIN_MODEL);
-      // Globals.BearerToken = data != null ? (LoginModel.fromJson(jsonDecode(data)).data!.token ?? "") : null;
-      // Globals.userIdRegister = data != null ? (LoginModel.fromJson(jsonDecode(data)).data?.user?.sId ?? "") : null;
+      if (data != null && data.isNotEmpty) {
+        try {
+          final authResponse = AuthResponse.fromJson(jsonDecode(data));
+          Globals.BearerToken = authResponse.data?.token;
+        } catch (e) {
+          debugPrint("Error parsing stored login model: $e");
+        }
+      }
       CommonApiClass().normalPrintJson("USER_BEARER_TOKEN  ${Globals.BearerToken}");
 
       return (Globals.BearerToken != null && Globals.BearerToken!.isNotEmpty) ? true : false;

@@ -1,15 +1,14 @@
 import 'package:rosewe_online_shopping/core/common_imports.dart';
 import 'package:rosewe_online_shopping/features/auth/presentation/login_screen.dart';
 import 'package:rosewe_online_shopping/features/profile/presentation/about_rosewe_screen.dart';
-import 'package:rosewe_online_shopping/core/common_imports.dart';
-import 'package:rosewe_online_shopping/features/auth/presentation/login_screen.dart';
-import 'package:rosewe_online_shopping/features/profile/presentation/about_rosewe_screen.dart';
 import 'package:rosewe_online_shopping/features/profile/presentation/country_selection_screen.dart';
 import 'package:rosewe_online_shopping/features/profile/presentation/currency_selection_screen.dart';
 import 'package:rosewe_online_shopping/features/profile/presentation/complete_profile_screen.dart';
 import 'package:rosewe_online_shopping/features/auth/presentation/setup_password_screen.dart';
 import 'package:rosewe_online_shopping/features/profile/presentation/empty_order_screen.dart';
 import 'package:rosewe_online_shopping/features/profile/presentation/contact_us_screen.dart';
+import 'package:get/get.dart';
+import 'package:rosewe_online_shopping/features/profile/controller/profile_controller.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
   const AccountSettingsScreen({super.key});
@@ -19,6 +18,7 @@ class AccountSettingsScreen extends StatefulWidget {
 }
 
 class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
+  final ProfileController _controller = Get.find<ProfileController>();
   String _selectedCountry = 'United States';
   String _selectedCurrency = 'USD';
 
@@ -112,15 +112,16 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      child: SingleChildScrollView(
+      child: Obx(() => SingleChildScrollView(
         child: Column(
           children: [
             const SizedBox(height: 15),
-            _buildGroup([
-              _settingsItem(context, 'Sign In/Create Account', onTap: () {
-                RouteNavigate().navigateToPush(context, const LoginScreen());
-              }),
-            ]),
+            if (!_controller.isLoggedIn.value)
+              _buildGroup([
+                _settingsItem(context, 'Sign In/Create Account', onTap: () {
+                  RouteNavigate().navigateToPush(context, const LoginScreen());
+                }),
+              ]),
             _buildGroup([
               _settingsItem(context, 'Country/Region', value: _selectedCountry, onTap: () async {
                 final result = await RouteNavigate().navigateToPush(
@@ -147,7 +148,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             ]),
             _buildGroup([
               _settingsItem(context, 'My Profile', onTap: () {
-                RouteNavigate().navigateToPush(context, const CompleteProfileScreen(email: 'user@example.com'));
+                final email = _controller.userProfile.value?.email ?? '';
+                RouteNavigate().navigateToPush(context, CompleteProfileScreen(email: email));
               }),
               _settingsItem(context, 'Edit Password', onTap: () {
                 RouteNavigate().navigateToPush(context, const SetupPasswordScreen());
@@ -170,10 +172,27 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               _settingsItem(context, 'Clear Cache', value: '9.69 MB'),
               _settingsItem(context, 'Version', value: '1.3.0'),
             ]),
+            if (_controller.isLoggedIn.value)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: CustomButton(
+                  text: 'Sign Out',
+                  buttonColor: AppColors.whiteColor,
+                  textColor: AppColors.blackColor,
+                  borderColor: AppColors.blackColor,
+                  widthDecoration: 1,
+                  borderRadius: 0,
+                  height: 45,
+                  onSubmit: () {
+                    _controller.logout();
+                    Navigator.pop(context);
+                  },
+                ),
+              ),
             const SizedBox(height: 20),
           ],
         ),
-      ),
+      )),
     );
   }
 

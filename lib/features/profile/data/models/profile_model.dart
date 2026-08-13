@@ -1,10 +1,10 @@
-import 'package:rosewe_online_shopping/models/base_model.dart';
-
-class UserProfile extends BaseModel {
-  final String? id;
+class UserProfile {
+  final int? id;
   final String? name;
   final String? email;
-  final String? avatarUrl;
+  final int? subscribeToEmails;
+  final String? createdAt;
+  final String? updatedAt;
   final int? points;
   final int? couponsCount;
   final double? balance;
@@ -13,38 +13,62 @@ class UserProfile extends BaseModel {
     this.id,
     this.name,
     this.email,
-    this.avatarUrl,
+    this.subscribeToEmails,
+    this.createdAt,
+    this.updatedAt,
     this.points,
     this.couponsCount,
     this.balance,
-    super.success,
-    super.message,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
-      id: json['id']?.toString(),
+      id: json['id'],
       name: json['name'],
       email: json['email'],
-      avatarUrl: json['avatar_url'],
+      subscribeToEmails: json['subscribe_to_emails'],
+      createdAt: json['created_at'],
+      updatedAt: json['updated_at'],
       points: json['points'],
       couponsCount: json['coupons_count'],
       balance: (json['balance'] as num?)?.toDouble(),
-      success: json['success'],
-      message: json['message'],
     );
   }
 
-  @override
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = super.toJson();
-    data['id'] = id;
-    data['name'] = name;
-    data['email'] = email;
-    data['avatar_url'] = avatarUrl;
-    data['points'] = points;
-    data['coupons_count'] = couponsCount;
-    data['balance'] = balance;
-    return data;
+    return {
+      'id': id,
+      'name': name,
+      'email': email,
+      'subscribe_to_emails': subscribeToEmails,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
+      'points': points,
+      'coupons_count': couponsCount,
+      'balance': balance,
+    };
+  }
+}
+
+class ProfileResponse {
+  final String? success;
+  final int? status;
+  final String? message;
+  final UserProfile? data;
+
+  ProfileResponse({
+    this.success,
+    this.status,
+    this.message,
+    this.data,
+  });
+
+  factory ProfileResponse.fromJson(Map<String, dynamic> json) {
+    return ProfileResponse(
+      success: json['success'],
+      status: json['status'],
+      message: json['message'],
+      data: json['data'] != null ? UserProfile.fromJson(json['data']) : null,
+    );
   }
 }

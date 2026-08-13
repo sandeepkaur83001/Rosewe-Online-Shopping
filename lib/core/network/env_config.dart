@@ -6,11 +6,11 @@ class EnvConfig {
   static String get baseUrl {
     switch (environment) {
       case Environment.dev:
-        return 'https://dev-api.example.com/';
+        return 'http://162.241.68.61/rosewe/api/v1/';
       case Environment.staging:
-        return 'https://staging-api.example.com/';
+        return 'http://162.241.68.61/rosewe/api/v1/';
       case Environment.prod:
-        return 'https://api.example.com/';
+        return 'http://162.241.68.61/rosewe/api/v1/';
     }
   }
 

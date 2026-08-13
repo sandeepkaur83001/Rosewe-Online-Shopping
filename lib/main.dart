@@ -1,4 +1,5 @@
 import 'package:rosewe_online_shopping/features/welcome/presentation/welcome_screen.dart';
+import 'package:rosewe_online_shopping/features/main_nav/presentation/main_nav_screen.dart';
 import 'package:rosewe_online_shopping/core/common_imports.dart';
 import 'package:get/get.dart';
 
@@ -12,12 +13,15 @@ void main() async {
 
   ThemeMode initialTheme = await ThemeService.getInitialTheme();
   
-  runApp(MyApp(initialTheme: initialTheme));
+  bool isLoggedIn = await SharedManager.getToken() ?? false;
+  
+  runApp(MyApp(initialTheme: initialTheme, isLoggedIn: isLoggedIn));
 }
 
 class MyApp extends StatelessWidget {
   final ThemeMode initialTheme;
-  const MyApp({super.key, required this.initialTheme});
+  final bool isLoggedIn;
+  const MyApp({super.key, required this.initialTheme, required this.isLoggedIn});
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +31,7 @@ class MyApp extends StatelessWidget {
       theme: AppThemes.light,
       darkTheme: AppThemes.dark,
       themeMode: initialTheme,
-      home: const WelcomeScreen(),
+      home: isLoggedIn ? const MainNavScreen() : const WelcomeScreen(),
     );
   }
 }

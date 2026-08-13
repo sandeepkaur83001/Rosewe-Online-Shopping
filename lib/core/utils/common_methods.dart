@@ -4,6 +4,7 @@ import 'package:rosewe_online_shopping/core/common_imports.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
 import 'dart:async';
+import 'package:rosewe_online_shopping/widgets/common/custom_loader.dart';
 
 void snackBar(String title, {String err = "", bool isError = false}) {
   final snackBar = SnackBar(
@@ -102,50 +103,22 @@ String getDateTimeString(DateTime dateTime) {
   return "$_date; $_hour:$_mins $_amPm";
 }
 
+
+
 class DialogService {
+  int _loaderCount = 0;
+
   void showLoader({String? text}) {
+    _loaderCount++;
+    if (_loaderCount > 1) return;
+
     FocusManager.instance.primaryFocus?.unfocus();
     Get.dialog(
       PopScope(
         canPop: false,
         child: Center(
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            margin: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Get.theme.cardColor,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 20,
-                  spreadRadius: 5,
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SpinKitThreeBounce(
-                  color: AppColors.custom_button_color,
-                  size: 35.0,
-                ),
-                if (text != null) ...[
-                  const SizedBox(height: 16),
-                  Material(
-                    color: Colors.transparent,
-                    child: Text(
-                      text,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Get.theme.textTheme.bodyLarge?.color,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
+          child: CircularDotLoader(
+            label: text ?? 'Loading...',
           ),
         ),
       ),
@@ -155,7 +128,10 @@ class DialogService {
   }
 
   void hideLoader() {
-    if (Get.isDialogOpen ?? false) {
+    if (_loaderCount > 0) {
+      _loaderCount--;
+    }
+    if (_loaderCount == 0 && (Get.isDialogOpen ?? false)) {
       Get.back();
     }
   }

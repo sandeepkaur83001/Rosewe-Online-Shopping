@@ -60,6 +60,14 @@ export 'package:rosewe_online_shopping/widgets/common/sub_tab.dart';
 export 'package:rosewe_online_shopping/widgets/common/network_image_view.dart';
 export 'package:rosewe_online_shopping/widgets/common/empty_state_widget.dart';
 
+// Models
+export 'package:rosewe_online_shopping/models/auth/delete_reason_model.dart';
+export 'package:rosewe_online_shopping/models/auth/auth_response_model.dart';
+export 'package:rosewe_online_shopping/models/profile/profile_category_model.dart';
+export 'package:rosewe_online_shopping/models/profile/profile_style_model.dart';
+export 'package:rosewe_online_shopping/models/profile/profile_country_model.dart';
+export 'package:rosewe_online_shopping/models/profile/profile_currency_model.dart';
+
 // Routes
 export 'package:rosewe_online_shopping/routes/route_navigate.dart';
 

@@ -13,7 +13,13 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   int _selectedTab = 0; // 0 for My Favorites, 1 for You May Also Like
-  final ProfileController _controller = Get.put(ProfileController());
+  final ProfileController _controller = Get.find<ProfileController>();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.fetchProfile(showLoader: false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,15 +62,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           GestureDetector(
-            onTap: () => RouteNavigate().navigateToPush(context, const LoginScreen()),
+            onTap: () {
+              if (!_controller.isLoggedIn.value) {
+                RouteNavigate().navigateToPush(context, const LoginScreen());
+              }
+            },
             child: Row(
               children: [
                 CustomText(
-                  text: _controller.userProfile.value?.name ?? 'Sign In/Create Account',
+                  text: _controller.isLoggedIn.value 
+                      ? (_controller.userProfile.value?.name ?? _controller.userProfile.value?.email ?? 'User') 
+                      : 'Sign In/Create Account',
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
-                const Icon(Icons.chevron_right, size: 24),
+                if (!_controller.isLoggedIn.value) const Icon(Icons.chevron_right, size: 24),
               ],
             ),
           ),
@@ -126,14 +138,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildWalletSection() {
+    final profile = _controller.userProfile.value;
     return _buildSectionContainer(
       title: 'My Wallet',
       content: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          Expanded(child: _buildIconItem(Icons.confirmation_number_outlined, 'Coupons')),
-          Expanded(child: _buildIconItem(Icons.layers_outlined, 'Points')),
-          Expanded(child: _buildIconItem(Icons.account_balance_wallet_outlined, 'Balance')),
+          Expanded(child: _buildIconItem(
+            Icons.confirmation_number_outlined, 
+            'Coupons', 
+            badgeValue: profile?.couponsCount?.toString()
+          )),
+          Expanded(child: _buildIconItem(
+            Icons.layers_outlined, 
+            'Points', 
+            badgeValue: profile?.points?.toString()
+          )),
+          Expanded(child: _buildIconItem(
+            Icons.account_balance_wallet_outlined, 
+            'Balance', 
+            badgeValue: profile?.balance != null ? '\$${profile!.balance!.toStringAsFixed(2)}' : null
+          )),
           const Expanded(child: SizedBox()),
         ],
       ),
@@ -155,10 +180,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildIconItem(IconData icon, String label) {
+  Widget _buildIconItem(IconData icon, String label, {String? badgeValue}) {
     return Column(
       children: [
-        Icon(icon, size: 30),
+        if (badgeValue != null && badgeValue != '0' && badgeValue != '0.00')
+          CustomText(
+            text: badgeValue,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          )
+        else
+          Icon(icon, size: 30),
         const SizedBox(height: 8),
         CustomText(text: label, fontSize: 12),
       ],
@@ -234,25 +266,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              GestureDetector(
-                onTap: () => RouteNavigate().navigateToPush(context, const LoginScreen()),
-                child: const CustomText(
-                  text: 'Sign in',
-                  fontSize: 14,
-                  textColor: Colors.orangeAccent,
-                  decoration: TextDecoration.underline,
+          if (!_controller.isLoggedIn.value)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                GestureDetector(
+                  onTap: () => RouteNavigate().navigateToPush(context, const LoginScreen()),
+                  child: const CustomText(
+                    text: 'Sign in',
+                    fontSize: 14,
+                    textColor: Colors.orangeAccent,
+                    decoration: TextDecoration.underline,
+                  ),
                 ),
-              ),
-              const CustomText(
-                text: ' to view your favorites.',
-                fontSize: 14,
-                textColor: AppColors.grayShade,
-              ),
-            ],
-          ),
+                const CustomText(
+                  text: ' to view your favorites.',
+                  fontSize: 14,
+                  textColor: AppColors.grayShade,
+                ),
+              ],
+            )
+          else
+            const CustomText(
+              text: 'You haven\'t added any favorites yet.',
+              fontSize: 14,
+              textColor: AppColors.grayShade,
+            ),
         ],
       ),
     );

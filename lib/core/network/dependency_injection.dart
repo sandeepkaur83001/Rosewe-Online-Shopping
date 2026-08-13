@@ -1,5 +1,6 @@
 import 'package:rosewe_online_shopping/core/common_imports.dart';
 import 'package:rosewe_online_shopping/features/home/controller/home_controller.dart';
+import 'package:rosewe_online_shopping/features/profile/controller/profile_controller.dart';
 import 'package:get/get.dart';
 
 class DependencyInjection {
@@ -9,5 +10,6 @@ class DependencyInjection {
     
     // Feature Controllers
     Get.lazyPut(() => HomeController());
+    Get.put(ProfileController(), permanent: true);
   }
 }

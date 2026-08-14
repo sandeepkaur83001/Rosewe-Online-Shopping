@@ -2,6 +2,7 @@ import 'package:rosewe_online_shopping/core/common_imports.dart';
 import 'package:rosewe_online_shopping/features/auth/presentation/login_screen.dart';
 import 'package:rosewe_online_shopping/features/profile/presentation/account_settings_screen.dart';
 import 'package:rosewe_online_shopping/features/profile/controller/profile_controller.dart';
+import 'package:rosewe_online_shopping/features/order/presentation/order_history_screen.dart';
 import 'package:get/get.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -18,7 +19,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _controller.fetchProfile(showLoader: false);
+    _controller.fetchInitialData();
   }
 
   @override
@@ -71,7 +72,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 CustomText(
                   text: _controller.isLoggedIn.value 
-                      ? (_controller.userProfile.value?.name ?? _controller.userProfile.value?.email ?? 'User') 
+                      ? 'Hi, ${_controller.userProfile.value?.name ?? _controller.userProfile.value?.email ?? 'User'}'
                       : 'Sign In/Create Account',
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -91,7 +92,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildSectionContainer({required String title, String? trailingText, required Widget content}) {
+  Widget _buildSectionContainer({required String title, String? trailingText, VoidCallback? onTrailingTap, required Widget content}) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       padding: const EdgeInsets.all(16),
@@ -107,10 +108,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               CustomText(text: title, fontSize: 16, fontWeight: FontWeight.bold),
               if (trailingText != null)
-                CustomText(
-                  text: trailingText,
-                  fontSize: 12,
-                  textColor: AppColors.grayShade,
+                GestureDetector(
+                  onTap: onTrailingTap,
+                  child: CustomText(
+                    text: trailingText,
+                    fontSize: 12,
+                    textColor: AppColors.grayShade,
+                  ),
                 ),
             ],
           ),
@@ -125,16 +129,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return _buildSectionContainer(
       title: 'My Order',
       trailingText: 'View All>',
+      onTrailingTap: () {
+        if (_controller.isLoggedIn.value) {
+          RouteNavigate().navigateToPush(context, const OrderHistoryScreen());
+        } else {
+          RouteNavigate().navigateToPush(context, const LoginScreen());
+        }
+      },
       content: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildIconItem(Icons.credit_card, 'Pending'),
-          _buildIconItem(Icons.inventory_2_outlined, 'Processing'),
-          _buildIconItem(Icons.local_shipping_outlined, 'Shipped'),
-          _buildIconItem(Icons.assignment_return_outlined, 'After-Sales'),
+          _buildIconItem(Icons.credit_card, 'Pending', onTap: () => _navigateToOrders()),
+          _buildIconItem(Icons.inventory_2_outlined, 'Processing', onTap: () => _navigateToOrders()),
+          _buildIconItem(Icons.local_shipping_outlined, 'Shipped', onTap: () => _navigateToOrders()),
+          _buildIconItem(Icons.assignment_return_outlined, 'After-Sales', onTap: () => _navigateToOrders()),
         ],
       ),
     );
+  }
+
+  void _navigateToOrders() {
+    if (_controller.isLoggedIn.value) {
+      RouteNavigate().navigateToPush(context, const OrderHistoryScreen());
+    } else {
+      RouteNavigate().navigateToPush(context, const LoginScreen());
+    }
   }
 
   Widget _buildWalletSection() {
@@ -180,20 +199,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildIconItem(IconData icon, String label, {String? badgeValue}) {
-    return Column(
-      children: [
-        if (badgeValue != null && badgeValue != '0' && badgeValue != '0.00')
-          CustomText(
-            text: badgeValue,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          )
-        else
-          Icon(icon, size: 30),
-        const SizedBox(height: 8),
-        CustomText(text: label, fontSize: 12),
-      ],
+  Widget _buildIconItem(IconData icon, String label, {String? badgeValue, VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          if (badgeValue != null && badgeValue != '0' && badgeValue != '0.00')
+            CustomText(
+              text: badgeValue,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            )
+          else
+            Icon(icon, size: 30),
+          const SizedBox(height: 8),
+          CustomText(text: label, fontSize: 12),
+        ],
+      ),
     );
   }
 

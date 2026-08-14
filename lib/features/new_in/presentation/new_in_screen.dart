@@ -1,4 +1,10 @@
 import 'package:rosewe_online_shopping/core/common_imports.dart';
+import 'package:rosewe_online_shopping/models/home/new_in_model.dart';
+import 'package:intl/intl.dart';
+
+import 'package:rosewe_online_shopping/features/auth/presentation/login_screen.dart';
+import 'package:rosewe_online_shopping/features/profile/controller/profile_controller.dart';
+import 'package:get/get.dart';
 
 class NewInScreen extends StatefulWidget {
   const NewInScreen({super.key});
@@ -10,18 +16,68 @@ class NewInScreen extends StatefulWidget {
 class _NewInScreenState extends State<NewInScreen> {
   bool _isRefreshing = false;
   double _pullDistance = 0;
+  bool _isLoading = true;
+  NewInData? _newInData;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchData();
+  }
+
+  Future<void> _fetchData({bool silent = false}) async {
+    if (!silent) {
+      setState(() => _isLoading = true);
+    }
+    try {
+      final response = await ApiImplementation.getNewInProducts(showLoader: !silent);
+      if (response.statusCode == 200) {
+        final newInResponse = NewInResponse.fromJson(jsonDecode(response.body));
+        setState(() {
+          _newInData = newInResponse.data;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching New In products: $e");
+    } finally {
+      setState(() {
+        _isLoading = false;
+        _isRefreshing = false;
+        _pullDistance = 0;
+      });
+    }
+  }
 
   Future<void> _onRefresh() async {
     if (_isRefreshing) return;
     setState(() {
       _isRefreshing = true;
     });
-    await Future.delayed(const Duration(seconds: 2));
-    if (mounted) {
-      setState(() {
-        _isRefreshing = false;
-        _pullDistance = 0;
-      });
+    await _fetchData(silent: true);
+  }
+
+  void _handleToggleWishlist(int? productId) async {
+    if (productId == null) return;
+    final profileController = Get.find<ProfileController>();
+    if (!profileController.isLoggedIn.value) {
+      CustomToast.showToast(message: 'Please sign in to add items to your favorites');
+      RouteNavigate().navigateToPush(context, const LoginScreen());
+      return;
+    }
+
+    final body = {'product_id': productId.toString()};
+    final response = await ApiImplementation.toggleWishlist(body);
+    if (response.statusCode == 200) {
+      _fetchData(silent: true);
+    }
+  }
+
+  String _formatDate(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr);
+      return DateFormat('MM-dd').format(date);
+    } catch (e) {
+      return dateStr;
     }
   }
 
@@ -30,7 +86,7 @@ class _NewInScreenState extends State<NewInScreen> {
     return BaseScreen(
       appBar: AppBar(
         backgroundColor: AppColors.whiteColor,
-        elevation: 0,
+        elevation: 0.5,
         centerTitle: true,
         title: const CustomText(
           text: 'NEW IN',
@@ -39,7 +95,9 @@ class _NewInScreenState extends State<NewInScreen> {
           fontStyle: FontStyle.italic,
         ),
       ),
-      child: NotificationListener<ScrollNotification>(
+      child: _isLoading 
+          ? const Center(child: CircularProgressIndicator(color: Colors.black))
+          : NotificationListener<ScrollNotification>(
         onNotification: (ScrollNotification notification) {
           if (notification is ScrollUpdateNotification) {
             if (notification.metrics.pixels < 0) {
@@ -50,6 +108,11 @@ class _NewInScreenState extends State<NewInScreen> {
               setState(() {
                 _pullDistance = 0;
               });
+            }
+          }
+          if (notification is ScrollEndNotification) {
+            if (_pullDistance > 80) {
+              _onRefresh();
             }
           }
           return false;
@@ -65,6 +128,7 @@ class _NewInScreenState extends State<NewInScreen> {
               _buildBanner(),
               const SizedBox(height: 10),
               _buildProductGrid(),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -96,19 +160,15 @@ class _NewInScreenState extends State<NewInScreen> {
   }
 
   Widget _buildCircularCategories() {
-    final categories = [
-      {'name': '08-11', 'image': 'https://picsum.photos/id/1/200/200'},
-      {'name': '08-10', 'image': 'https://picsum.photos/id/2/200/200'},
-      {'name': '08-09', 'image': 'https://picsum.photos/id/3/200/200'},
-      {'name': '08-08', 'image': 'https://picsum.photos/id/4/200/200'},
-    ];
+    final dates = _newInData?.dates ?? [];
+    if (dates.isEmpty) return const SizedBox.shrink();
 
     return SizedBox(
       height: 100,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: categories.length,
+        itemCount: dates.length,
         itemBuilder: (context, index) {
           return Padding(
             padding: const EdgeInsets.only(right: 20),
@@ -117,10 +177,16 @@ class _NewInScreenState extends State<NewInScreen> {
                 CircleAvatar(
                   radius: 35,
                   backgroundColor: AppColors.backgroundColor,
-                  backgroundImage: NetworkImage(categories[index]['image']!),
+                  child: Center(
+                    child: CustomText(
+                      text: _formatDate(dates[index]),
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 5),
-                CustomText(text: categories[index]['name']!, fontSize: 12),
+                const CustomText(text: 'New In', fontSize: 10, textColor: Colors.grey),
               ],
             ),
           );
@@ -149,6 +215,14 @@ class _NewInScreenState extends State<NewInScreen> {
   }
 
   Widget _buildProductGrid() {
+    final products = _newInData?.products?.data ?? [];
+    if (products.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child: CustomText(text: 'No products found'),
+      );
+    }
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -159,8 +233,9 @@ class _NewInScreenState extends State<NewInScreen> {
         crossAxisSpacing: 10,
         mainAxisSpacing: 15,
       ),
-      itemCount: 10,
+      itemCount: products.length,
       itemBuilder: (context, index) {
+        final product = products[index];
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -168,27 +243,47 @@ class _NewInScreenState extends State<NewInScreen> {
               child: Stack(
                 children: [
                   NetworkImageView(
-                    url: 'https://picsum.photos/id/${index + 100}/400/600',
+                    url: product.image ?? '',
                     fit: BoxFit.cover,
                     width: double.infinity,
                   ),
                   Positioned(
                     top: 10,
                     right: 10,
-                    child: Icon(Icons.favorite_border, color: AppColors.whiteColor),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      color: Colors.black.withOpacity(0.1),
-                      child: const Center(
-                        child: CustomText(text: 'NEW', fontSize: 10, textColor: Colors.white),
+                    child: GestureDetector(
+                      onTap: () => _handleToggleWishlist(product.id),
+                      child: Icon(
+                        product.isFavorite == true ? Icons.favorite : Icons.favorite_border, 
+                        color: product.isFavorite == true ? Colors.red : AppColors.whiteColor,
                       ),
                     ),
                   ),
+                  if (product.isSale == true)
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        color: Colors.red.withOpacity(0.8),
+                        child: const Center(
+                          child: CustomText(text: 'SALE', fontSize: 10, textColor: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  if (product.isNew == true && product.isSale != true)
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        color: Colors.black.withOpacity(0.1),
+                        child: const Center(
+                          child: CustomText(text: 'NEW', fontSize: 10, textColor: Colors.white),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -196,10 +291,30 @@ class _NewInScreenState extends State<NewInScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                CustomText(
-                  text: 'US\$${(29.99 + index).toStringAsFixed(2)}',
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (product.salePrice != null) ...[
+                      CustomText(
+                        text: 'US\$${product.salePrice!.toStringAsFixed(2)}',
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        textColor: Colors.red,
+                      ),
+                      CustomText(
+                        text: 'US\$${product.price!.toStringAsFixed(2)}',
+                        fontSize: 11,
+                        textColor: Colors.grey,
+                        decoration: TextDecoration.lineThrough,
+                      ),
+                    ] else ...[
+                      CustomText(
+                        text: 'US\$${product.price!.toStringAsFixed(2)}',
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ],
+                  ],
                 ),
                 const Icon(Icons.shopping_bag_outlined, size: 20),
               ],

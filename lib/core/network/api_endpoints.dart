@@ -18,13 +18,29 @@ class ApiEndpoints {
   // Addresses
   static const String addresses = "addresses";
   static String addressDetail(String addressId) => "addresses/$addressId";
+  static const String states = "states";
+  static const String cart = "cart";
+  static const String checkout = "checkout";
+  static const String checkoutConfirm = "checkout/confirm";
+  static const String orders = "orders";
+  static const String wishlist = "wishlist";
+  static const String wishlistToggle = "wishlist/toggle";
 
   // Contact
   static const String contactUs = "contact-us";
+  static const String feedbackOptions = "feedback/options";
+  static const String feedbackStore = "feedback";
 
   // Others
+  static const String home = "home";
   static const String getProducts = "products/list";
+  static const String getNewIn = "products/new-in";
+  static const String cartRecommendations = "recommendations/cart";
+  static const String addToCart = "cart/add";
+  static const String updateCart = "cart/update";
+  static const String removeFromCart = "cart/remove";
   static const String getCategories = "categories/list";
+  static const String categoryTree = "categories/tree";
   static const String getBanners = "marketing/banners";
   static const String getDailyCheckIn = "user/daily-checkin";
 }

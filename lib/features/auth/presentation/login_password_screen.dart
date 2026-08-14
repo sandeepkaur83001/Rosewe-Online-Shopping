@@ -122,9 +122,12 @@ class _LoginPasswordScreenState extends State<LoginPasswordScreen> {
     dialog.showLoader();
 
     try {
+
       // API Implementation
       final position = await LocationService.getCurrentLocationLangLong();
+      print('dfdjfldjfld');
       final deviceType = Platform.isAndroid ? 'android' : 'ios';
+
       final deviceToken = 'temp_token';
 
       final body = {
@@ -136,24 +139,33 @@ class _LoginPasswordScreenState extends State<LoginPasswordScreen> {
         'longitude': position?.longitude.toString() ?? '',
       };
 
-      final response = await ApiImplementation.login(body, showLoader: false);
+      final response = await ApiImplementation.login(body, showLoader: true);
 
-      if (response != null && response.status == 200) {
-        if (response.data?.token != null) {
-          Globals.BearerToken = response.data!.token;
-          await SharedManager.setStringSharePreferences(
-            SharedConstants.LOGIN_MODEL,
-            jsonEncode(response.toJson()),
-          );
-          final profileController = Get.find<ProfileController>();
-          await profileController.checkLoginStatus();
-          profileController.fetchProfile(showLoader: false);
+      if (response != null) {
+        if (response.status == 200) {
+          if (response.data?.token != null) {
+            Globals.BearerToken = response.data!.token;
+            await SharedManager.setStringSharePreferences(
+              SharedConstants.LOGIN_MODEL,
+              jsonEncode(response.toJson()),
+            );
+            final profileController = Get.find<ProfileController>();
+            await profileController.checkLoginStatus();
+            await profileController.fetchInitialData();
+          }
+          CustomToast.showToast(message: response.message ?? 'Logged in successfully');
+          if (mounted) {
+            RouteNavigate().navigateToPushAndRemoveUntil(context, const MainNavScreen());
+          }
+        } else {
+          // Explicitly show toast for errors (like 401 Invalid Credentials)
+          CustomToast.showToast(message: response.message ?? 'Login failed');
         }
-        CustomToast.showToast(message: response.message ?? 'Logged in successfully');
-        if (mounted) {
-          RouteNavigate().navigateToPushAndRemoveUntil(context, const MainNavScreen());
-        }
+      } else {
+        CustomToast.showToast(message: 'Login failed: Server error');
       }
+    } catch (e) {
+      CustomToast.showToast(message: 'Login failed: $e');
     } finally {
       dialog.hideLoader();
     }

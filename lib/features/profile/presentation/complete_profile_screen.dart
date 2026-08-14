@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
 import 'package:rosewe_online_shopping/core/common_imports.dart';
-import 'package:rosewe_online_shopping/features/profile/presentation/country_selection_screen.dart';
 import 'package:rosewe_online_shopping/features/profile/controller/profile_controller.dart';
+import 'package:rosewe_online_shopping/features/profile/data/repository/profile_repository.dart';
 
 class CompleteProfileScreen extends StatefulWidget {
   final String email;
@@ -13,17 +13,44 @@ class CompleteProfileScreen extends StatefulWidget {
 
 class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   final ProfileController _controller = Get.find<ProfileController>();
-  final TextEditingController _countryController = TextEditingController();
+  final ProfileRepository _repository = ProfileRepository();
+  
+  ProfileCountryData? _selectedCountry;
+  final TextEditingController _nicknameController = TextEditingController();
   final TextEditingController _genderController = TextEditingController(text: 'Privacy');
   final TextEditingController _birthdayController = TextEditingController(text: '0000-00-00');
 
-  final Set<String> _selectedCategories = {};
-  final Set<String> _selectedStyles = {};
+  final Set<int> _selectedCategories = {};
+  final Set<int> _selectedStyles = {};
 
   @override
   void initState() {
     super.initState();
-    _countryController.text = _controller.userProfile.value?.name ?? ''; // Assuming name might store country or just a placeholder
+    _initializeData();
+  }
+
+  void _initializeData() {
+    final profile = _controller.userProfile.value;
+    if (profile != null) {
+      if (profile.countryId != null) {
+        _selectedCountry = _controller.countries.firstWhereOrNull((c) => c.id == profile.countryId);
+      }
+      if (profile.name != null) {
+        _nicknameController.text = profile.name!;
+      }
+      if (profile.gender != null) {
+        _genderController.text = profile.gender!.capitalizeFirst ?? 'Privacy';
+      }
+      if (profile.birthday != null) {
+        _birthdayController.text = profile.birthday!;
+      }
+      if (profile.favoriteCategoryIds != null) {
+        _selectedCategories.addAll(profile.favoriteCategoryIds!);
+      }
+      if (profile.favoriteStyleIds != null) {
+        _selectedStyles.addAll(profile.favoriteStyleIds!);
+      }
+    }
   }
 
   @override
@@ -37,7 +64,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
           icon: const Icon(Icons.arrow_back, color: AppColors.blackColor),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const CustomText(text: 'Complete Profile', fontSize: 18, fontWeight: FontWeight.bold),
+        title: const CustomText(text: 'Profile Information', fontSize: 18, fontWeight: FontWeight.bold),
       ),
       child: Obx(() {
         if (_controller.isLoading.value) {
@@ -51,9 +78,13 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
               _buildLabel('Email'),
               _buildReadOnlyField(widget.email),
               const SizedBox(height: 15),
+
+              _buildLabel('Nick Name'),
+              _buildTextField(_nicknameController, 'Enter Nick Name'),
+              const SizedBox(height: 15),
               
               _buildLabel('Country *'),
-              _buildCountryField(),
+              _buildCountryDropdown(),
               const SizedBox(height: 15),
 
               _buildLabel('Gender *'),
@@ -61,14 +92,14 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
               const SizedBox(height: 15),
 
               _buildLabel('Birthday *'),
-              _buildTextField(_birthdayController, '0000-00-00'),
+              _buildDateField(),
               const SizedBox(height: 25),
 
               _buildLabel('Favorite Categories *'),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: _controller.categories.map((cat) => _buildChip(cat.name ?? '', _selectedCategories)).toList(),
+                children: _controller.categories.map((cat) => _buildChip(cat.name ?? '', cat.id ?? -1, _selectedCategories)).toList(),
               ),
               const SizedBox(height: 25),
 
@@ -76,7 +107,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: _controller.styles.map((style) => _buildChip(style.name ?? '', _selectedStyles)).toList(),
+                children: _controller.styles.map((style) => _buildChip(style.name ?? '', style.id ?? -1, _selectedStyles)).toList(),
               ),
               const SizedBox(height: 40),
 
@@ -86,13 +117,46 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                 textColor: AppColors.whiteColor,
                 borderRadius: 0,
                 height: 45,
-                onSubmit: () => Navigator.pop(context),
+                onSubmit: _handleUpdateProfile,
               ),
             ],
           ),
         );
       }),
     );
+  }
+
+  void _handleUpdateProfile() async {
+    if (_selectedCountry == null) {
+      CustomToast.showToast(message: 'Please select a country');
+      return;
+    }
+
+    final dialog = Get.find<DialogService>();
+    dialog.showLoader();
+
+    try {
+      final body = {
+        'country_id': _selectedCountry!.id,
+        'currency_id': _controller.currencies.isNotEmpty ? _controller.currencies.first.id : 1,
+        'name': _nicknameController.text.trim(),
+        'gender': _genderController.text.toLowerCase(),
+        'birthday': _birthdayController.text,
+        'category_ids': _selectedCategories.toList(),
+        'style_ids': _selectedStyles.toList(),
+      };
+
+      final success = await _repository.updateProfile(body, showLoader: true);
+      if (success) {
+        CustomToast.showToast(message: 'Profile updated successfully');
+        await _controller.fetchProfile(showLoader: false);
+        if (mounted) Navigator.pop(context);
+      } else {
+        CustomToast.showToast(message: 'Failed to update profile');
+      }
+    } finally {
+      dialog.hideLoader();
+    }
   }
 
   Widget _buildLabel(String label) {
@@ -131,24 +195,96 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     );
   }
 
-  Widget _buildCountryField() {
+  Widget _buildDateField() {
     return GestureDetector(
-      onTap: _selectCountry,
+      onTap: _selectDate,
       child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
           color: Colors.white,
           border: Border.all(color: Colors.grey[300]!),
         ),
-        child: AbsorbPointer(
-          child: TextField(
-            controller: _countryController,
-            decoration: const InputDecoration(
-              hintText: 'Select Country',
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              suffixIcon: Icon(Icons.arrow_drop_down, color: Colors.grey),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            CustomText(
+              text: _birthdayController.text.isEmpty ? 'YYYY-MM-DD' : _birthdayController.text,
+              fontSize: 14,
+              textColor: _birthdayController.text.isEmpty ? Colors.grey : Colors.black87,
+            ),
+            const Icon(Icons.calendar_today_outlined, size: 18, color: Colors.grey),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _selectDate() async {
+    DateTime initialDate = DateTime.now().subtract(const Duration(days: 365 * 20));
+    
+    // Try to parse existing date if valid
+    if (_birthdayController.text.isNotEmpty && _birthdayController.text != '0000-00-00') {
+      try {
+        initialDate = DateTime.parse(_birthdayController.text);
+      } catch (e) {
+        // use default
+      }
+    }
+
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Colors.black,
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.black,
+              ),
             ),
           ),
+          child: child!,
+        );
+      },
+    );
+    
+    if (picked != null) {
+      setState(() {
+        _birthdayController.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+      });
+    }
+  }
+
+  Widget _buildCountryDropdown() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<ProfileCountryData>(
+          value: _selectedCountry,
+          isExpanded: true,
+          hint: const CustomText(text: 'Select Country', fontSize: 14),
+          items: _controller.countries.map((country) {
+            return DropdownMenuItem<ProfileCountryData>(
+              value: country,
+              child: CustomText(text: country.name ?? '', fontSize: 14),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              _selectedCountry = value;
+            });
+          },
         ),
       ),
     );
@@ -162,7 +298,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButtonFormField<String>(
-          initialValue: _genderController.text,
+          value: _genderController.text,
           items: ['Privacy', 'Male', 'Female'].map((String value) {
             return DropdownMenuItem<String>(
               value: value,
@@ -186,37 +322,23 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     );
   }
 
-  Future<void> _selectCountry() async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CountrySelectionScreen(currentCountry: _countryController.text),
-      ),
-    );
-    if (result != null && result is String) {
-      setState(() {
-        _countryController.text = result;
-      });
-    }
-  }
-
-  Widget _buildChip(String label, Set<String> selectionSet) {
-    bool isSelected = selectionSet.contains(label);
+  Widget _buildChip(String label, int id, Set<int> selectionSet) {
+    bool isSelected = selectionSet.contains(id);
     return GestureDetector(
       onTap: () {
         setState(() {
           if (isSelected) {
-            selectionSet.remove(label);
+            selectionSet.remove(id);
           } else {
-            selectionSet.add(label);
+            selectionSet.add(id);
           }
         });
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.black : Colors.white,
-          border: Border.all(color: Colors.grey[300]!),
+          color: isSelected ? AppColors.primaryColor : Colors.white,
+          border: Border.all(color: isSelected ? Colors.black : Colors.grey[300]!),
           borderRadius: BorderRadius.circular(4),
         ),
         child: CustomText(

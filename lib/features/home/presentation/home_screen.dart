@@ -7,6 +7,7 @@ import 'package:rosewe_online_shopping/features/search/presentation/search_scree
 import 'package:rosewe_online_shopping/features/favorites/presentation/favorites_screen.dart';
 import 'package:get/get.dart';
 import 'package:rosewe_online_shopping/features/profile/controller/profile_controller.dart';
+import 'package:rosewe_online_shopping/features/home/controller/home_controller.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,6 +21,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   late PageController _bannerController;
   late PageController _secondaryCarouselController;
   final ProfileController _profileController = Get.find<ProfileController>();
+  final HomeController _homeController = Get.find<HomeController>();
 
   Timer? _timer;
   int _currentBannerPage = 0;
@@ -105,11 +107,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       _isRefreshing = true;
     });
 
-    // API Call Implementation (Commented for now)
-    // await ApiImplementation.fetchProducts();
-    // await ApiImplementation.fetchCategories();
+    await _homeController.refreshData();
 
-    await Future.delayed(const Duration(seconds: 2));
     if (mounted) {
       setState(() {
         _isRefreshing = false;
@@ -118,10 +117,26 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
   }
 
+  void _handleToggleWishlist(int? productId) async {
+    if (productId == null) return;
+    if (!_profileController.isLoggedIn.value) {
+      CustomToast.showToast(message: 'Please sign in to add items to your favorites');
+      RouteNavigate().navigateToPush(context, const LoginScreen());
+      return;
+    }
+
+    final body = {'product_id': productId.toString()};
+    final response = await ApiImplementation.toggleWishlist(body);
+    if (response.statusCode == 200) {
+      // Refresh data to reflect wishlist status
+      _homeController.refreshData();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BaseScreen(
-
+      color: AppColors.whiteColor,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
         child: SafeArea(
@@ -142,10 +157,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 height: 20,
                 fit: BoxFit.contain,
               ),
-              onPressed: () => RouteNavigate().navigateToPush(
-                context,
-                const FavoritesScreen(),
-              ),
+              onPressed: () async {
+                await RouteNavigate().navigateToPush(
+                  context,
+                  const FavoritesScreen(),
+                );
+                // Refresh home data in case anything was changed in favorites screen
+                _homeController.refreshData();
+              },
             ),
             actions: [
               IconButton(
@@ -186,8 +205,19 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 child: Column(
                   children: [
                     _buildTopSection(),
-                    _buildGracefulShoresSection(),
-                    _buildSecondaryMovingCarousel(),
+                    Obx(() {
+                      if (_homeController.banners.isEmpty) {
+                        return _buildGracefulShoresSection();
+                      }
+                      return NetworkImageView(
+                        url: _homeController.banners[0].image ?? '',
+                        width: double.infinity,
+                        fit: BoxFit.fitWidth,
+                      );
+                    }),
+                    Obx(() {
+                      return _buildSecondaryMovingCarousel();
+                    }),
                     // const SizedBox(height: 20),
                     _buildPromoBanner(),
                     // const SizedBox(height: 10),
@@ -327,16 +357,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildResortDressSection() {
+    final banner = _homeController.banners.length > 1 ? _homeController.banners[1] : null;
+    
     return Container(
       color: Colors.white,
       child: Row(
         children: [
           Expanded(
             flex: 4,
-            child: Image.asset(
-              'assets/images/banner_effortless_tummy_clear.png',
-              fit: BoxFit.cover,
-            ),
+            child: banner != null 
+              ? NetworkImageView(
+                  url: banner.image ?? '',
+                  fit: BoxFit.cover,
+                )
+              : Image.asset(
+                  'assets/images/banner_effortless_tummy_clear.png',
+                  fit: BoxFit.cover,
+                ),
           ),
           Expanded(
             flex: 6,
@@ -350,11 +387,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const CustomText(
-                      text: 'EFFORTLESS TUMMY',
+                    CustomText(
+                      text: banner?.title?.toUpperCase() ?? 'EFFORTLESS TUMMY',
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       textColor: Colors.orange,
+                      align: TextAlign.center,
                     ),
                     const SizedBox(height: 5),
                     const CustomText(
@@ -452,128 +490,147 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildCategoryGrid() {
-    final categories = [
-      {'name': 'SWIMWEAR', 'image': 'https://picsum.photos/id/101/400/200'},
-      {'name': 'TOPS', 'image': 'https://picsum.photos/id/102/400/200'},
-      {'name': 'DRESSES', 'image': 'https://picsum.photos/id/103/400/200'},
-      {'name': 'JUMPSUITS', 'image': 'https://picsum.photos/id/104/400/200'},
-      {'name': 'PLUS SIZE', 'image': 'https://picsum.photos/id/105/400/200'},
-      {'name': 'BOTTOMS', 'image': 'https://picsum.photos/id/106/400/200'},
-    ];
+    return Obx(() {
+      final categories = _homeController.categories;
+      if (categories.isEmpty) {
+        return const SizedBox.shrink();
+      }
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 2.2,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-      ),
-      itemCount: categories.length,
-      itemBuilder: (context, index) {
-        return Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.orange.withOpacity(0.3)),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Center(
-                  child: CustomText(
-                    text: categories[index]['name']!,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
+      return GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 2.2,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+        ),
+        itemCount: categories.length > 6 ? 6 : categories.length, // Limit to 6 for the grid
+        itemBuilder: (context, index) {
+          final cat = categories[index];
+          return Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.orange.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Center(
+                    child: CustomText(
+                      text: cat.name ?? '',
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      align: TextAlign.center,
+                    ),
                   ),
                 ),
-              ),
-              Expanded(
-                child: NetworkImageView(
-                  url: categories[index]['image']!,
-                  fit: BoxFit.cover,
-                  height: double.infinity,
+                Expanded(
+                  child: NetworkImageView(
+                    url: cat.image ?? 'https://picsum.photos/id/${100 + index}/400/200',
+                    fit: BoxFit.cover,
+                    height: double.infinity,
+                  ),
                 ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
+              ],
+            ),
+          );
+        },
+      );
+    });
   }
 
   Widget _buildTheNewNewSection() {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  const CustomText(text: 'The New New', fontSize: 18, fontWeight: FontWeight.bold),
-                  const SizedBox(width: 8),
-                  CustomText(text: '100+ Styles Added!', fontSize: 12, textColor: AppColors.grayShade),
-                ],
-              ),
-              const Icon(Icons.chevron_right, color: AppColors.grayShade),
-            ],
-          ),
-        ),
-        const SizedBox(height: 15),
-        SizedBox(
-          height: 250,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
+    return Obx(() {
+      final products = _homeController.newArrivals;
+      if (products.isEmpty) return const SizedBox.shrink();
+
+      return Column(
+        children: [
+          Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: 5,
-            itemBuilder: (context, index) {
-              return Container(
-                width: 150,
-                margin: const EdgeInsets.only(right: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
                   children: [
-                    Expanded(
-                      child: Stack(
-                        children: [
-                          NetworkImageView(
-                            url: 'https://picsum.photos/id/${index + 20}/300/450',
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                          ),
-                          Positioned(
-                            top: 8,
-                            right: 8,
-                            child: CircleAvatar(
-                              radius: 12,
-                              backgroundColor: Colors.white.withOpacity(0.8),
-                              child: const Icon(Icons.favorite_border, size: 14, color: Colors.red),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 8,
-                            right: 8,
-                            child: CircleAvatar(
-                              radius: 12,
-                              backgroundColor: Colors.white.withOpacity(0.8),
-                              child: const Icon(Icons.shopping_bag_outlined, size: 14),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    CustomText(text: 'US\$${(36.98 + index).toStringAsFixed(2)}', fontSize: 14, fontWeight: FontWeight.bold),
+                    const CustomText(text: 'The New New', fontSize: 18, fontWeight: FontWeight.bold),
+                    const SizedBox(width: 8),
+                    CustomText(text: '100+ Styles Added!', fontSize: 12, textColor: AppColors.grayShade),
                   ],
                 ),
-              );
-            },
+                const Icon(Icons.chevron_right, color: AppColors.grayShade),
+              ],
+            ),
           ),
-        ),
-      ],
-    );
+          const SizedBox(height: 15),
+          SizedBox(
+            height: 250,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: products.length,
+              itemBuilder: (context, index) {
+                final product = products[index];
+                return Container(
+                  width: 150,
+                  margin: const EdgeInsets.only(right: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Stack(
+                          children: [
+                            NetworkImageView(
+                              url: product['image'] ?? 'https://picsum.photos/id/${index + 20}/300/450',
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                            ),
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: GestureDetector(
+                                onTap: () => _handleToggleWishlist(product['id']),
+                                child: CircleAvatar(
+                                  radius: 12,
+                                  backgroundColor: Colors.white.withOpacity(0.8),
+                                  child: Icon(
+                                    (product['is_favorite'] == true || product['is_wishlist'] == true) 
+                                        ? Icons.favorite 
+                                        : Icons.favorite_border, 
+                                    size: 14, 
+                                    color: Colors.red
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 8,
+                              right: 8,
+                              child: CircleAvatar(
+                                radius: 12,
+                                backgroundColor: Colors.white.withOpacity(0.8),
+                                child: const Icon(Icons.shopping_bag_outlined, size: 14),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      CustomText(
+                        text: 'US\$${(product['price'] ?? (36.98 + index)).toString()}', 
+                        fontSize: 14, 
+                        fontWeight: FontWeight.bold
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      );
+    });
   }
 
   Widget _buildDailyCheckInSection() {
@@ -638,59 +695,78 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildProductGrid() {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(12),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        childAspectRatio: 0.55,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 12,
-      ),
-      itemCount: 15,
-      itemBuilder: (context, index) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Stack(
-                children: [
-                  NetworkImageView(
-                    url: 'https://picsum.photos/id/${index + 50}/300/450',
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                  ),
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: const Icon(Icons.favorite_border, size: 18, color: Colors.white),
-                  ),
-                  if (index % 3 == 0)
+    return Obx(() {
+      final products = _homeController.bestSellers;
+      if (products.isEmpty) return const SizedBox.shrink();
+
+      return GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(12),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          childAspectRatio: 0.55,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 12,
+        ),
+        itemCount: products.length,
+        itemBuilder: (context, index) {
+          final product = products[index];
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Stack(
+                  children: [
+                    NetworkImageView(
+                      url: product['image'] ?? 'https://picsum.photos/id/${index + 50}/300/450',
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    ),
                     Positioned(
-                      bottom: 0,
-                      left: 0,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                        color: Colors.red,
-                        child: const CustomText(text: 'Sale', fontSize: 10, textColor: Colors.white),
+                      top: 8,
+                      right: 8,
+                      child: GestureDetector(
+                        onTap: () => _handleToggleWishlist(product['id']),
+                        child: Icon(
+                          (product['is_favorite'] == true || product['is_wishlist'] == true)
+                              ? Icons.favorite
+                              : Icons.favorite_border,
+                          size: 18,
+                          color: (product['is_favorite'] == true || product['is_wishlist'] == true) ? Colors.red : Colors.white,
+                        ),
                       ),
                     ),
+                    if (index % 3 == 0)
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          color: Colors.red,
+                          child: const CustomText(text: 'Sale', fontSize: 10, textColor: Colors.white),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 5),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  CustomText(
+                    text: 'US\$${(product['price'] ?? (22.98 + index * 5)).toString()}', 
+                    fontSize: 12, 
+                    fontWeight: FontWeight.bold
+                  ),
+                  const Icon(Icons.shopping_bag_outlined, size: 16),
                 ],
               ),
-            ),
-            const SizedBox(height: 5),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                CustomText(text: 'US\$${(22.98 + index * 5).toStringAsFixed(2)}', fontSize: 12, fontWeight: FontWeight.bold),
-                const Icon(Icons.shopping_bag_outlined, size: 16),
-              ],
-            ),
-          ],
-        );
-      },
-    );
+            ],
+          );
+        },
+      );
+    });
   }
 
   Widget _bottomSigninFooter(BuildContext context) {

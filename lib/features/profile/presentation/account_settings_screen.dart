@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:rosewe_online_shopping/core/common_imports.dart';
 import 'package:rosewe_online_shopping/features/auth/presentation/login_screen.dart';
 import 'package:rosewe_online_shopping/features/profile/presentation/about_rosewe_screen.dart';
@@ -7,8 +8,11 @@ import 'package:rosewe_online_shopping/features/profile/presentation/complete_pr
 import 'package:rosewe_online_shopping/features/auth/presentation/setup_password_screen.dart';
 import 'package:rosewe_online_shopping/features/profile/presentation/empty_order_screen.dart';
 import 'package:rosewe_online_shopping/features/profile/presentation/contact_us_screen.dart';
+import 'package:rosewe_online_shopping/features/profile/presentation/account_delete_reason_screen.dart';
+import 'package:rosewe_online_shopping/features/profile/presentation/change_password_screen.dart';
 import 'package:get/get.dart';
 import 'package:rosewe_online_shopping/features/profile/controller/profile_controller.dart';
+import 'package:rosewe_online_shopping/features/profile/presentation/feedback_screen.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
   const AccountSettingsScreen({super.key});
@@ -21,6 +25,57 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   final ProfileController _controller = Get.find<ProfileController>();
   String _selectedCountry = 'United States';
   String _selectedCurrency = 'USD';
+  String _cacheSize = '0.00 MB';
+
+  @override
+  void initState() {
+    super.initState();
+    _calculateCacheSize();
+  }
+
+  Future<void> _calculateCacheSize() async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      int tempDirSize = await _getDirSize(tempDir);
+      
+      setState(() {
+        _cacheSize = '${(tempDirSize / (1024 * 1024)).toStringAsFixed(2)} MB';
+      });
+    } catch (e) {
+      debugPrint("Error calculating cache size: $e");
+    }
+  }
+
+  Future<int> _getDirSize(Directory dir) async {
+    int size = 0;
+    try {
+      if (dir.existsSync()) {
+        dir.listSync(recursive: true, followLinks: false).forEach((FileSystemEntity entity) {
+          if (entity is File) {
+            size += entity.lengthSync();
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint("Error getting directory size: $e");
+    }
+    return size;
+  }
+
+  Future<void> _clearCache() async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      if (tempDir.existsSync()) {
+        tempDir.deleteSync(recursive: true);
+      }
+      
+      CustomToast.showToast(message: 'Cache cleared successfully');
+      _calculateCacheSize();
+    } catch (e) {
+      debugPrint("Error clearing cache: $e");
+      CustomToast.showToast(message: 'Failed to clear cache');
+    }
+  }
 
   void _showRatingDialog(BuildContext context) {
     showDialog(
@@ -84,7 +139,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 widthDecoration: 1,
                 borderRadius: 0,
                 height: 45,
-                onSubmit: () => Navigator.pop(context),
+                onSubmit: () {
+                  RouteNavigate().safePop(context);
+                  RouteNavigate().navigateToPush(context, FeedbackScreen());
+                }
               ),
             ],
           ),
@@ -134,34 +192,39 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   });
                 }
               }),
-              _settingsItem(context, 'Currency', value: _selectedCurrency, onTap: () async {
-                final result = await RouteNavigate().navigateToPush(
-                  context, 
-                  CurrencySelectionScreen(currentCurrency: _selectedCurrency),
-                );
-                if (result != null) {
-                  setState(() {
-                    _selectedCurrency = result;
-                  });
-                }
-              }),
+              // _settingsItem(context, 'Currency', value: _selectedCurrency, onTap: () async {
+              //   final result = await RouteNavigate().navigateToPush(
+              //     context,
+              //     CurrencySelectionScreen(currentCurrency: _selectedCurrency),
+              //   );
+              //   if (result != null) {
+              //     setState(() {
+              //       _selectedCurrency = result;
+              //     });
+              //   }
+              // }),
             ]),
             _buildGroup([
               _settingsItem(context, 'My Profile', onTap: () {
                 final email = _controller.userProfile.value?.email ?? '';
                 RouteNavigate().navigateToPush(context, CompleteProfileScreen(email: email));
               }),
-              _settingsItem(context, 'Edit Password', onTap: () {
-                RouteNavigate().navigateToPush(context, const SetupPasswordScreen());
-              }),
-              _settingsItem(context, 'Address Book', onTap: () {
-                RouteNavigate().navigateToPush(context, const EmptyOrderScreen());
-              }),
             ]),
             _buildGroup([
+              _settingsItem(context, 'Add Password', onTap: () {
+                RouteNavigate().navigateToPush(context, const ChangePasswordScreen());
+              }),
+              _settingsItem(context, 'Address Book', onTap: () {
+                RouteNavigate().navigateToPush(context, const AddressBookScreen());
+              }),
+              _settingsItem(context, 'Delete Account', onTap: () {
+                RouteNavigate().navigateToPush(context, const AccountDeleteReasonScreen());
+              }),
               _settingsItem(context, 'Contact Us', onTap: () {
                 RouteNavigate().navigateToPush(context, const ContactUsScreen());
               }),
+            ]),
+            _buildGroup([
               _settingsItem(context, 'Push Notifications', value: 'OFF'),
               _settingsItem(context, 'About Rosewe', onTap: () {
                 RouteNavigate().navigateToPush(context, const AboutRoseweScreen());
@@ -169,20 +232,18 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             ]),
             _buildGroup([
               _settingsItem(context, 'Rating & Feedback', onTap: () => _showRatingDialog(context)),
-              _settingsItem(context, 'Clear Cache', value: '9.69 MB'),
-              _settingsItem(context, 'Version', value: '1.3.0'),
+              _settingsItem(context, 'Clear Cache', value: _cacheSize, onTap: _clearCache),
+              _settingsItem(context, 'Version', value: DeviceInfoUtil.version),
             ]),
             if (_controller.isLoggedIn.value)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 child: CustomButton(
-                  text: 'Sign Out',
-                  buttonColor: AppColors.whiteColor,
-                  textColor: AppColors.blackColor,
-                  borderColor: AppColors.blackColor,
-                  widthDecoration: 1,
+                  text: 'LOGOUT',
+                  buttonColor: AppColors.blackColor,
+                  textColor: AppColors.whiteColor,
                   borderRadius: 0,
-                  height: 45,
+                  height: 50,
                   onSubmit: () {
                     _controller.logout();
                     Navigator.pop(context);

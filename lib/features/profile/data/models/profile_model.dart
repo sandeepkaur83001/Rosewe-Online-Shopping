@@ -8,6 +8,12 @@ class UserProfile {
   final int? points;
   final int? couponsCount;
   final double? balance;
+  final int? countryId;
+  final int? currencyId;
+  final String? gender;
+  final String? birthday;
+  final List<int>? favoriteCategoryIds;
+  final List<int>? favoriteStyleIds;
 
   UserProfile({
     this.id,
@@ -19,9 +25,22 @@ class UserProfile {
     this.points,
     this.couponsCount,
     this.balance,
+    this.countryId,
+    this.currencyId,
+    this.gender,
+    this.birthday,
+    this.favoriteCategoryIds,
+    this.favoriteStyleIds,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
+    double? parseDouble(dynamic value) {
+      if (value == null) return null;
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value);
+      return null;
+    }
+
     return UserProfile(
       id: json['id'],
       name: json['name'],
@@ -31,7 +50,13 @@ class UserProfile {
       updatedAt: json['updated_at'],
       points: json['points'],
       couponsCount: json['coupons_count'],
-      balance: (json['balance'] as num?)?.toDouble(),
+      balance: parseDouble(json['balance']),
+      countryId: json['country_id'],
+      currencyId: json['currency_id'],
+      gender: json['gender'],
+      birthday: json['birthday'],
+      favoriteCategoryIds: json['category_ids'] != null ? List<int>.from(json['category_ids']) : null,
+      favoriteStyleIds: json['style_ids'] != null ? List<int>.from(json['style_ids']) : null,
     );
   }
 
@@ -46,6 +71,12 @@ class UserProfile {
       'points': points,
       'coupons_count': couponsCount,
       'balance': balance,
+      'country_id': countryId,
+      'currency_id': currencyId,
+      'gender': gender,
+      'birthday': birthday,
+      'category_ids': favoriteCategoryIds,
+      'style_ids': favoriteStyleIds,
     };
   }
 }

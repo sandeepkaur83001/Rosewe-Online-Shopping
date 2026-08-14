@@ -12,23 +12,44 @@ class CategoryScreen extends StatefulWidget {
 class _CategoryScreenState extends State<CategoryScreen> {
   bool _isRefreshing = false;
   double _pullDistance = 0;
+  List<CategoryNode> _categories = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCategoryTree();
+  }
+
+  Future<void> _fetchCategoryTree({bool silent = false}) async {
+    if (!silent) {
+      setState(() => _isLoading = true);
+    }
+    try {
+      final response = await ApiImplementation.getCategoryTree(showLoader: !silent);
+      if (response.statusCode == 200) {
+        final treeResponse = CategoryTreeResponse.fromJson(jsonDecode(response.body));
+        setState(() {
+          _categories = treeResponse.data ?? [];
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching category tree: $e");
+    } finally {
+      setState(() {
+        _isLoading = false;
+        _isRefreshing = false;
+        _pullDistance = 0;
+      });
+    }
+  }
 
   Future<void> _onRefresh() async {
     if (_isRefreshing) return;
     setState(() {
       _isRefreshing = true;
     });
-
-    // API Call Implementation (Commented for now)
-    // await DummyApiImplementation.fetchCategories();
-
-    await Future.delayed(const Duration(seconds: 2));
-    if (mounted) {
-      setState(() {
-        _isRefreshing = false;
-        _pullDistance = 0;
-      });
-    }
+    await _fetchCategoryTree(silent: true);
   }
 
   @override
@@ -44,12 +65,12 @@ class _CategoryScreenState extends State<CategoryScreen> {
           fit: BoxFit.contain,
         ),
         leading: IconButton(
-          icon: Image.asset("assets/images/heart.png",  height: 20, color: AppColors.blackColor),
+          icon: Image.asset("assets/images/heart.png", height: 20, color: AppColors.blackColor),
           onPressed: () => RouteNavigate().navigateToPush(context, const FavoritesScreen()),
         ),
         actions: [
           IconButton(
-            icon: Image.asset("assets/images/search_icon.png",  height: 20, color: AppColors.blackColor),
+            icon: Image.asset("assets/images/search_icon.png", height: 20, color: AppColors.blackColor),
             onPressed: () => RouteNavigate().navigateToPush(context, const SearchScreen()),
           ),
           Padding(
@@ -61,7 +82,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
           ),
         ],
       ),
-      child: NotificationListener<ScrollNotification>(
+      child: _isLoading 
+        ? const Center(child: CircularProgressIndicator(color: Colors.black))
+        : NotificationListener<ScrollNotification>(
         onNotification: (ScrollNotification notification) {
           if (notification is ScrollUpdateNotification) {
             if (notification.metrics.pixels < 0) {
@@ -74,234 +97,43 @@ class _CategoryScreenState extends State<CategoryScreen> {
               });
             }
           }
+          if (notification is ScrollEndNotification) {
+            if (_pullDistance > 80) {
+              _onRefresh();
+            }
+          }
           return false;
         },
-        child: ListView(
+        child: ListView.builder(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          children: [
-            _buildRefreshBanner(),
-            _expandableCategory('New IN', [
-              _subHeader('View All'),
-              _sectionHeader('SHOP BY CATEGORY'),
-              _subItem('New in Dresses'),
-              _subItem('New in Tops'),
-              _subItem('New in Bottoms'),
-              _subItem('New in Swimwear'),
-              _sectionHeader('SHOP BY DATE'),
-              _subItem('New In Today'),
-              _subItem('New This Week'),
-              _subItem('Back In Stock'),
-            ]),
-            _expandableCategory('Swimwear', [
-              _subHeader('View All'),
-              _sectionHeader('Best Sellers'),
-              _subItem('Flexible Sizing'),
-              _subHeader('Plus Size Swimwear'),
-              _sectionHeader('SHOP BY CATEGORY'),
-              _subItem('Tankinis'),
-              _subItem('Bikinis'),
-              _subItem('One-Piece'),
-              _subItem('Cover-Ups'),
-              _subItem('Swimwear Sets'),
-              _subItem('Swimwear Tops'),
-              _subItem('Swimwear Bottoms'),
-              _sectionHeader('SHOP BY TOP TYPE'),
-              _subItem('Push-Up'),
-              _subItem('Bra & Triangle'),
-              _subItem('Adjustable'),
-              _subItem('Tummy Coverage'),
-              _subItem('Blouson'),
-              _sectionHeader('SHOP BY BOTTOM TYPE'),
-              _subItem('Briefs'),
-              _subItem('Cheeky'),
-              _subItem('Shorts'),
-              _subItem('Skirts'),
-              _sectionHeader('SHOP BY TREND'),
-              _subItem('Leopard & Animal'),
-              _subItem('Sexy Chic'),
-              _subItem('Ruffle Design'),
-              _subItem('Solid'),
-              _subItem('Stripe & Dot'),
-              _subItem('Tropical Print'),
-              _subItem('Tribal Print'),
-              _subItem('Halter Neck'),
-              _sectionHeader('SHOP BY COLOR'),
-              _subItem('Elegant Black'),
-              _subItem('Sexy Red'),
-              _subItem('Orange & Yellow'),
-              _subItem('Vibrant Blue'),
-              _subItem('Purple & Pink'),
-            ]),
-            _expandableCategory('TOPS', [
-              _subHeader('View All'),
-              _subHeader('Plus Size Tops'),
-              _subItem('Lovely Bottoms'),
-              _sectionHeader('SHOP BY TYPE'),
-              _subItem('Tees & T-shirts'),
-              _subItem('Shirts'),
-              _subItem('Blouse'),
-              _subItem('Sweatshirts & Hoodies'),
-              _subItem('Sweaters&Cardigan'),
-              _sectionHeader('Outerwear & Coats'),
-              _subItem('Tank Tops & Camis'),
-              _subHeader('Shrug'),
-              _sectionHeader('SHOP BY STYLE'),
-              _subItem('Casual'),
-              _subItem('Party'),
-              _subItem('Long Sleeve'),
-              _subItem('Off the Shoulder'),
-              _subItem('Tummy Coverage'),
-              _sectionHeader('SHOP BY COLOR'),
-              _subItem('Elegant Black'),
-              _subItem('Red Tops'),
-              _subItem('White Tops'),
-              _subItem('Yellow & Orange'),
-              _subItem('Charm Blue'),
-            ]),
-            _expandableCategory('Dresses', [
-              _subHeader('View All'),
-              _subHeader('Best Sellers'),
-              _sectionHeader('SHOP BY OCCASION'),
-              _subItem('Party Dresses'),
-              _subItem('Church Attire'),
-              _subItem('Vacation Dresses'),
-              _subItem('Wedding Guest'),
-              _subItem('Prom Dresses'),
-              _subItem('Cozy Casual'),
-              _subItem('Work Wear'),
-              _sectionHeader('SHOP BY TREND'),
-              _subItem('X Shape Dresses'),
-              _subItem('Bodycon Dresses'),
-              _subItem('Plaid Dresses'),
-              _subItem('Flared Sleeve'),
-              _subItem('Straight Dresses'),
-              _subItem('Peplum Dresses'),
-              _subItem('Floral Dresses'),
-              _sectionHeader('SHOP BY LENGTH'),
-              _subItem('Maxi Dresses'),
-              _subItem('Midi Dresses'),
-              _subItem('Long Sleeve'),
-              _subItem('Three Quarters Sleeve'),
-              _subItem('Short Sleeve'),
-              _subItem('Sleeveless'),
-              _sectionHeader('SHOP BY COLOR'),
-              _subItem('Black Dresses'),
-              _subItem('White Dresses'),
-              _subItem('Blue Dresses'),
-              _subItem('Red Dresses'),
-              _subItem('Pink & Purple Dresses'),
-              _subItem('Green Dresses'),
-            ]),
-            _expandableCategory('Jumpsuits', [
-              _subHeader('View All'),
-              _sectionHeader('Best Sellers'),
-              _subItem('Jumpsuits'),
-              _subItem('Rompers'),
-              _subHeader('Shapewear'),
-              _sectionHeader('SHOP BY OCCASION'),
-              _subItem('Party & Cocktail'),
-              _sectionHeader('SHOP BY COLOR'),
-              _subItem('Blue Jumpsuits'),
-            ]),
-            _expandableCategory('PLUS SIZE', [
-              _subHeader('View All'),
-              _sectionHeader('SHOP BY TYPE'),
-              _subItem('Plus Size Tops'),
-              _sectionHeader('PLUS SIZE SWIMWEAR'),
-              _subItem('Plus Size Tankini'),
-              _subItem('Plus Size Bikinis'),
-              _subItem('Plus Size One Piece'),
-              _subItem('Plus Size Swimwear Bottom'),
-              _subItem('Plus Size Swimwear Sets'),
-              _sectionHeader('SHOP BY COLOR'),
-              _subItem('Elegant Black'),
-              _subItem('Pink & Purple'),
-              _subItem('Hot Red'),
-              _subItem('Charm Blue'),
-            ]),
-            _expandableCategory('BOTTOMS', [
-              _subHeader('View All'),
-              _sectionHeader('SHOP BY TYPE'),
-              _subItem('Denim & Jeans'),
-              _subItem('Leggings'),
-              _subItem('Skirts'),
-              _subItem('Pants'),
-              _subItem('Shorts'),
-              _subHeader('Jumpsuits & Rompers'),
-              _subHeader('Lovely Tops'),
-              _sectionHeader('SHOP BY STYLE'),
-              _subItem('Classic Black'),
-              _subItem('Elegant Blue'),
-              _subItem('High Waisted'),
-              _subItem('Mid Waisted'),
-              _subItem('Skinny Picks'),
-            ]),
-            _expandableCategory('Clothing', [
-              _subHeader('View All'),
-              _subHeader('New Arrivals'),
-              _subHeader('Must Have Classics'),
-              _subHeader('Lounge Wear'),
-              _sectionHeader('DRESSES'),
-              _subItem('Maxi Dresses'),
-              _subItem('Midi Dresses'),
-              _subItem('Bodycon Dresses'),
-              _subItem('Party Dresses'),
-              _sectionHeader('TOPS'),
-              _subItem('Blouse'),
-              _subItem('Shirts'),
-              _subItem('Tees & T-shirts'),
-              _subItem('Tank Tops & Camis'),
-              _subItem('Sweatshirts'),
-              _subItem('Sweaters'),
-              _subItem('Tunic Tops'),
-              _subItem('Cardigans'),
-              _subHeader('Outerwear & Coats'),
-              _sectionHeader('SWIMWEAR'),
-              _subItem('Bikini'),
-              _subItem('Tankini'),
-              _subItem('One-Piece'),
-              _subItem('Cover Ups'),
-              _subItem('Swimwear Bottom'),
-              _sectionHeader('JUMPSUITS & ROMPERS'),
-              _subItem('Jumpsuits'),
-              _subItem('Rompers'),
-              _sectionHeader('BOTTOMS'),
-              _subItem('Pants'),
-              _subItem('Denim & Jeans'),
-              _subItem('Leggings'),
-              _subItem('Shorts'),
-              _subItem('Skirts'),
-              _sectionHeader('PLUS SIZE'),
-              _subItem('Plus Size Swimwear'),
-              _subItem('Plus Size Tops'),
-              _subHeader('INTIMATES'),
-              _subHeader('Lace Picks'),
-              _subHeader('Sparkle Picks'),
-            ]),
-            _expandableCategory('JEW&ACCS', [
-              _subHeader('View All'),
-              _subHeader('Pearl Design'),
-              _subHeader('Party Picks'),
-              _subHeader('Golden Picks'),
-              _subHeader('Vacation Picks'),
-              _sectionHeader('JEWELRY'),
-              _subItem('Earrings'),
-              _subItem('Anklets'),
-              _subItem('Necklaces & Pendants'),
-              _subItem('Bracelets & Bangles'),
-              _sectionHeader('ACCESSORIES'),
-              _subItem('Hats'),
-              _subItem('Bags'),
-              _subItem('Beach Blanket'),
-              _subItem('Sunglasses'),
-              _subItem('Phone Accessories'),
-              _subHeader('SHOES'),
-            ]),
-          ],
+          itemCount: _categories.length + 1,
+          itemBuilder: (context, index) {
+            if (index == 0) return _buildRefreshBanner();
+            final category = _categories[index - 1];
+            return _buildCategoryItem(category);
+          },
         ),
       ),
     );
+  }
+
+  Widget _buildCategoryItem(CategoryNode category) {
+    final children = category.children ?? [];
+    List<Widget> subWidgets = [];
+
+    for (var child in children) {
+      if (child.children != null && child.children!.isNotEmpty) {
+        subWidgets.add(_sectionHeader(child.name ?? ''));
+        for (var grandChild in child.children!) {
+          subWidgets.add(_subItem(grandChild.name ?? ''));
+        }
+      } else {
+        subWidgets.add(_subHeader(child.name ?? ''));
+      }
+    }
+
+    return _expandableCategory(category.name ?? '', subWidgets);
   }
 
   Widget _buildRefreshBanner() {
@@ -336,7 +168,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -345,7 +177,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          title: CustomText(text: title, fontSize: 18, fontWeight: FontWeight.bold,textColor: Colors.black,),
+          title: CustomText(text: title, fontSize: 18, fontWeight: FontWeight.bold, textColor: Colors.black,),
           childrenPadding: EdgeInsets.zero,
           collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -354,29 +186,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
           iconColor: AppColors.blackColor,
           children: children,
         ),
-      ),
-    );
-  }
-
-  Widget _simpleCategory(String title) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: AppColors.whiteColor,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ListTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        title: CustomText(text: title, fontSize: 18, fontWeight: FontWeight.bold),
-        trailing: const Icon(Icons.keyboard_arrow_down, color: AppColors.blackColor),
-        onTap: () {},
       ),
     );
   }

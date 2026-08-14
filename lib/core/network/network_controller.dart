@@ -13,17 +13,8 @@ class NetworkController extends GetxController {
 
 
   void _updateConnectionStatus(List<ConnectivityResult> connectivityResult) {
-    final context =
-        Get.overlayContext ??
-        Get.context ??
-        Globals.navigatorKey.currentState?.context;
-
     if (connectivityResult.contains(ConnectivityResult.none)) {
-      if (context != null) {
-        DynamicOverlay.show(context: context, isProgressLoader: true);
-      } else {
-        debugPrint("Context is null, cannot show overlay");
-      }
+      DynamicOverlay.show(isNoInternet: true);
     } else {
       DynamicOverlay.hide();
     }

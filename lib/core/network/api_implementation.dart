@@ -8,7 +8,7 @@ import 'package:http/http.dart' as http;
 class ApiImplementation {
   // --- Auth APIs ---
 
-  static Future<AuthResponse?> register(Map<String, String> body, {List<File>? files, bool showLoader = true}) async {
+  static Future<AuthResponse?> register(Map<String, dynamic> body, {List<File>? files, bool showLoader = true}) async {
     final response = await ApiService.formPost(ApiEndpoints.register, body: body, files: files, headers: ApiService.defaultHeaders, showLoader: showLoader);
     if (response.statusCode == 200 || response.statusCode == 201) {
       return AuthResponse.fromJson(jsonDecode(response.body));
@@ -24,8 +24,12 @@ class ApiImplementation {
     return null;
   }
 
-  static Future<http.Response> socialLogin(Map<String, dynamic> body, {bool showLoader = true}) async {
-    return await ApiService.post(ApiEndpoints.socialLogin, body: body, headers: ApiService.defaultHeaders, showLoader: showLoader);
+  static Future<AuthResponse?> socialLogin(Map<String, dynamic> body, {bool showLoader = true}) async {
+    final response = await ApiService.formPost(ApiEndpoints.socialLogin, body: body, headers: ApiService.defaultHeaders, showLoader: showLoader);
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return AuthResponse.fromJson(jsonDecode(response.body));
+    }
+    return null;
   }
 
   static Future<DeleteReasonResponse?> getDeleteReasons({bool showLoader = true}) async {
@@ -36,7 +40,7 @@ class ApiImplementation {
     return null;
   }
 
-  static Future<http.Response> changePassword(Map<String, String> body, {bool showLoader = true}) async {
+  static Future<http.Response> changePassword(Map<String, dynamic> body, {bool showLoader = true}) async {
     return await ApiService.formPost(ApiEndpoints.changePassword, body: body, headers: ApiService.defaultHeaders, showLoader: showLoader);
   }
 
@@ -87,21 +91,27 @@ class ApiImplementation {
   }
 
   static Future<http.Response> updateProfile(Map<String, dynamic> body, {bool showLoader = true}) async {
-    return await ApiService.put(ApiEndpoints.profile, body: body, headers: ApiService.defaultHeaders, showLoader: showLoader);
+    return await ApiService.formPut(ApiEndpoints.profile, body: body, showLoader: showLoader);
   }
 
   // --- Address APIs ---
+
+  static Future<http.Response> getStates(String countryId, {bool showLoader = true}) async {
+    return await ApiService.get("${ApiEndpoints.states}?country_id=$countryId", headers: ApiService.defaultHeaders, showLoader: showLoader);
+  }
 
   static Future<http.Response> getAddresses({bool showLoader = true}) async {
     return await ApiService.get(ApiEndpoints.addresses, headers: ApiService.defaultHeaders, showLoader: showLoader);
   }
 
   static Future<http.Response> addAddress(Map<String, dynamic> body, {bool showLoader = true}) async {
-    return await ApiService.post(ApiEndpoints.addresses, body: body, headers: ApiService.defaultHeaders, showLoader: showLoader);
+    return await ApiService.formPost(ApiEndpoints.addresses, body: body, showLoader: showLoader);
   }
 
   static Future<http.Response> updateAddress(String addressId, Map<String, dynamic> body, {bool showLoader = true}) async {
-    return await ApiService.put(ApiEndpoints.addressDetail(addressId), body: body, headers: ApiService.defaultHeaders, showLoader: showLoader);
+    // Convert dynamic map to string map for x-www-form-urlencoded
+    final stringBody = body.map((key, value) => MapEntry(key, value.toString()));
+    return await ApiService.formPutEncoded(ApiEndpoints.addressDetail(addressId), body: stringBody, showLoader: showLoader);
   }
 
   static Future<http.Response> deleteAddress(String addressId, {bool showLoader = true}) async {
@@ -111,7 +121,65 @@ class ApiImplementation {
   // --- Contact APIs ---
 
   static Future<http.Response> contactUs(Map<String, dynamic> body, {bool showLoader = true}) async {
-    return await ApiService.post(ApiEndpoints.contactUs, body: body, headers: ApiService.defaultHeaders, showLoader: showLoader);
+    return await ApiService.formPost(ApiEndpoints.contactUs, body: body, showLoader: showLoader);
+  }
+
+  static Future<http.Response> getFeedbackOptions({bool showLoader = true}) async {
+    return await ApiService.get(ApiEndpoints.feedbackOptions, headers: ApiService.defaultHeaders, showLoader: showLoader);
+  }
+
+  // --- Home APIs ---
+
+  static Future<http.Response> getHomeData({bool showLoader = true}) async {
+    return await ApiService.get(ApiEndpoints.home, headers: ApiService.defaultHeaders, showLoader: showLoader);
+  }
+
+  static Future<http.Response> getCategoryTree({bool showLoader = true}) async {
+    return await ApiService.get(ApiEndpoints.categoryTree, headers: ApiService.defaultHeaders, showLoader: showLoader);
+  }
+
+  static Future<http.Response> getNewInProducts({bool showLoader = true}) async {
+    return await ApiService.get(ApiEndpoints.getNewIn, headers: ApiService.defaultHeaders, showLoader: showLoader);
+  }
+
+  static Future<http.Response> getCartRecommendations({bool showLoader = true}) async {
+    return await ApiService.get(ApiEndpoints.cartRecommendations, headers: ApiService.defaultHeaders, showLoader: showLoader);
+  }
+
+  static Future<http.Response> addToCart(Map<String, dynamic> body, {bool showLoader = true}) async {
+    return await ApiService.formPost(ApiEndpoints.addToCart, body: body, showLoader: showLoader);
+  }
+
+  static Future<http.Response> updateCart(Map<String, dynamic> body, {bool showLoader = true}) async {
+    return await ApiService.formPost(ApiEndpoints.updateCart, body: body, showLoader: showLoader);
+  }
+
+  static Future<http.Response> removeFromCart(String productId, {bool showLoader = true}) async {
+    return await ApiService.delete("${ApiEndpoints.removeFromCart}?product_id=$productId", headers: ApiService.defaultHeaders, showLoader: showLoader);
+  }
+
+  static Future<http.Response> getCart({bool showLoader = true}) async {
+    return await ApiService.get(ApiEndpoints.cart, headers: ApiService.defaultHeaders, showLoader: showLoader);
+  }
+
+  static Future<http.Response> checkout(Map<String, dynamic> body, {bool showLoader = true}) async {
+    return await ApiService.formPost(ApiEndpoints.checkout, body: body, showLoader: showLoader);
+  }
+
+  static Future<http.Response> confirmCheckout(Map<String, dynamic> body, {bool showLoader = true}) async {
+    return await ApiService.formPost(ApiEndpoints.checkoutConfirm, body: body, showLoader: showLoader);
+  }
+
+  static Future<http.Response> getOrders({bool showLoader = true}) async {
+    return await ApiService.get(ApiEndpoints.orders, headers: ApiService.defaultHeaders, showLoader: showLoader);
+  }
+
+  static Future<http.Response> getWishlist({bool showLoader = true}) async {
+    return await ApiService.get(ApiEndpoints.wishlist, headers: ApiService.defaultHeaders, showLoader: showLoader);
+  }
+
+  static Future<http.Response> toggleWishlist(Map<String, dynamic> body, {bool showLoader = true}) async {
+    return await ApiService.formPost(ApiEndpoints.wishlistToggle, body: body, showLoader: showLoader);
   }
 
   // Legacy/Example placeholders

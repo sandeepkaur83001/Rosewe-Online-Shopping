@@ -17,7 +17,7 @@ class ProfileRepository {
 
   Future<bool> updateProfile(Map<String, dynamic> data, {bool showLoader = true}) async {
     try {
-      final response = await ApiService.put(ApiEndpoints.profile, body: data, showLoader: showLoader);
+      final response = await ApiService.formPut(ApiEndpoints.profile, body: data, showLoader: showLoader);
       return response.statusCode == 200;
     } catch (e) {
       debugPrint("Repository error: $e");

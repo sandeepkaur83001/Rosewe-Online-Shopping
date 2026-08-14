@@ -9,7 +9,7 @@ class DependencyInjection {
     Get.put(DialogService(), permanent: true);
     
     // Feature Controllers
-    Get.lazyPut(() => HomeController());
+    Get.put(HomeController(), permanent: true);
     Get.put(ProfileController(), permanent: true);
   }
 }

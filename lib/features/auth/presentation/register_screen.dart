@@ -257,7 +257,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'longitude': position?.longitude.toString() ?? '',
       };
 
-      final response = await ApiImplementation.register(body, showLoader: false);
+      final response = await ApiImplementation.register(body, showLoader: true);
 
       if (response != null && (response.status == 200 || response.status == 201)) {
         if (response.data?.token != null) {
@@ -268,7 +268,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           );
           final profileController = Get.find<ProfileController>();
           await profileController.checkLoginStatus();
-          profileController.fetchProfile(showLoader: false);
+          await profileController.fetchInitialData();
         }
         CustomToast.showToast(message: response.message ?? 'Account created successfully');
         if (mounted) {
@@ -279,6 +279,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           CustomToast.showToast(message: response.message!);
         }
       }
+    } catch (e) {
+      CustomToast.showToast(message: 'Registration failed: $e');
     } finally {
       dialog.hideLoader();
     }

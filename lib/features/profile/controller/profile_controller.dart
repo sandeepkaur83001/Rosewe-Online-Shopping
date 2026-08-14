@@ -19,36 +19,31 @@ class ProfileController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    checkLoginStatus();
-    fetchInitialData();
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    await checkLoginStatus();
+    if (isLoggedIn.value) {
+      await fetchInitialData();
+    }
   }
 
   Future<void> checkLoginStatus() async {
-    isLoggedIn.value = Globals.BearerToken != null && Globals.BearerToken!.isNotEmpty;
-    if (!isLoggedIn.value) {
-      final hasToken = await SharedManager.getToken();
-      isLoggedIn.value = hasToken ?? false;
-      if (isLoggedIn.value) {
-        await fetchProfile(showLoader: false);
-      }
-    } else {
-      await fetchProfile(showLoader: false);
-    }
+    final hasToken = await SharedManager.getToken();
+    isLoggedIn.value = (Globals.BearerToken != null && Globals.BearerToken!.isNotEmpty) || (hasToken ?? false);
   }
 
   Future<void> fetchInitialData() async {
-    try {
-      isLoading(true);
-      await Future.wait([
-        fetchProfile(showLoader: false),
-        fetchCategories(),
-        fetchStyles(),
-        fetchCountries(),
-        fetchCurrencies(),
-      ]);
-    } finally {
-      isLoading(false);
-    }
+    if (!isLoggedIn.value) return;
+
+    await Future.wait([
+      fetchProfile(showLoader: true),
+      fetchCategories(),
+      fetchStyles(),
+      fetchCountries(),
+      fetchCurrencies(),
+    ]);
   }
 
   Future<void> fetchCategories() async {
@@ -96,8 +91,11 @@ class ProfileController extends GetxController {
   }
 
   Future<void> fetchProfile({bool showLoader = true}) async {
+    if (Globals.BearerToken == null || Globals.BearerToken!.isEmpty) {
+      debugPrint("Skipping fetchProfile: Token is null or empty");
+      return;
+    }
     try {
-      if (!showLoader) isLoading(true);
       errorMessage('');
       debugPrint("Fetching profile... Token: ${Globals.BearerToken}");
       final response = await _repository.getProfile(showLoader: showLoader);
@@ -115,8 +113,6 @@ class ProfileController extends GetxController {
     } catch (e) {
       debugPrint("Error in ProfileController.fetchProfile: $e");
       errorMessage.value = 'An unexpected error occurred';
-    } finally {
-      if (!showLoader) isLoading(false);
     }
   }
 

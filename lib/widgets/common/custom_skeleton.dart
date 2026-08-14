@@ -15,6 +15,8 @@ class CustomSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!isLoading) return child;
+
     return Skeletonizer(
       enabled: isLoading,
       effect: const ShimmerEffect(

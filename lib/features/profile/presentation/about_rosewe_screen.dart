@@ -25,10 +25,17 @@ class AboutRoseweScreen extends StatelessWidget {
       ),
       body: ListView(
         children: [
-          _settingsItem(context, 'Shipping Info'),
-          _settingsItem(context, 'Return & Exchange'),
-          _settingsItem(context, 'Payment Methods'),
-          _settingsItem(context, 'Pro Program'),
+          _settingsItem(
+            context, 
+            'About Rosewe',
+            onTap: () => RouteNavigate().navigateToPush(
+              context, 
+              const CustomWebViewScreen(
+                title: 'About Rosewe', 
+                url: 'http://162.241.68.61/rosewe/about-us',
+              ),
+            ),
+          ),
           _settingsItem(
             context, 
             'Terms of Use',
@@ -53,12 +60,56 @@ class AboutRoseweScreen extends StatelessWidget {
           ),
           _settingsItem(
             context, 
-            'Rosewe Story',
+            'Shipping Info',
             onTap: () => RouteNavigate().navigateToPush(
               context, 
               const CustomWebViewScreen(
-                title: 'Rosewe Story', 
-                url: 'http://162.241.68.61/rosewe/about-us',
+                title: 'Shipping Info', 
+                url: 'http://162.241.68.61/rosewe/shipping-info',
+              ),
+            ),
+          ),
+          _settingsItem(
+            context, 
+            'Return & Exchange',
+            onTap: () => RouteNavigate().navigateToPush(
+              context, 
+              const CustomWebViewScreen(
+                title: 'Return & Exchange', 
+                url: 'http://162.241.68.61/rosewe/return-and-exchange-policy',
+              ),
+            ),
+          ),
+          _settingsItem(
+            context, 
+            'Payment Methods',
+            onTap: () => RouteNavigate().navigateToPush(
+              context, 
+              const CustomWebViewScreen(
+                title: 'Payment Methods', 
+                url: 'http://162.241.68.61/rosewe/payment-methods',
+              ),
+            ),
+          ),
+          _settingsItem(
+            context, 
+            'Pro Program',
+            onTap: () => RouteNavigate().navigateToPush(
+              context, 
+              const CustomWebViewScreen(
+                title: 'Pro Program', 
+                url: 'http://162.241.68.61/rosewe/pro-program',
+              ),
+            ),
+          ),
+          _settingsItem(
+            context, 
+            'FAQ',
+            onTap: () => RouteNavigate().navigateToPush(
+              context, 
+              const CustomWebViewScreen(
+                title: 'FAQ', 
+                url: 'http://162.241.68.61/rosewe/faq',
               ),
             ),
           ),

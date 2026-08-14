@@ -1,9 +1,11 @@
+import 'package:get/get.dart';
 import 'package:rosewe_online_shopping/core/common_imports.dart';
 import 'package:rosewe_online_shopping/features/home/presentation/home_screen.dart';
 import 'package:rosewe_online_shopping/features/category/presentation/category_screen.dart';
 import 'package:rosewe_online_shopping/features/new_in/presentation/new_in_screen.dart';
 import 'package:rosewe_online_shopping/features/bag/presentation/bag_screen.dart';
 import 'package:rosewe_online_shopping/features/profile/presentation/profile_screen.dart';
+import 'package:rosewe_online_shopping/features/home/controller/home_controller.dart';
 
 class MainNavScreen extends StatefulWidget {
   const MainNavScreen({super.key});
@@ -24,6 +26,9 @@ class _MainNavScreenState extends State<MainNavScreen> {
   ];
 
   void _onItemTapped(int index) {
+    if (index == 0) {
+      Get.find<HomeController>().getHomeData(showLoader: false);
+    }
     setState(() {
       _selectedIndex = index;
     });

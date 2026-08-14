@@ -1,46 +1,52 @@
 import 'package:rosewe_online_shopping/core/common_imports.dart';
 import 'package:rosewe_online_shopping/features/home/data/home_repository.dart';
+import 'package:rosewe_online_shopping/models/home/home_model.dart';
 import 'package:get/get.dart';
 
 class HomeController extends GetxController {
   final HomeRepository repository = HomeRepository();
 
   var isLoading = false.obs;
-  var products = [].obs;
-  var categories = [].obs;
+  var homeData = Rxn<HomeData>();
+  
+  var banners = <HomeBanner>[].obs;
+  var categories = <HomeCategory>[].obs;
+  var newArrivals = [].obs;
+  var bestSellers = [].obs;
+  var featuredProducts = [].obs;
 
   @override
   void onInit() {
     super.onInit();
-    // getData(); // Call this when you want to load data on start
+    getHomeData();
   }
 
-  Future<void> getData() async {
+  Future<void> getHomeData({bool showLoader = true}) async {
     try {
-      isLoading(true);
+      if (!showLoader) isLoading(true);
       
-      // Parallel API calls
-      final results = await Future.wait([
-        repository.fetchHomeData(),
-        repository.fetchCategories(),
-      ]);
+      final response = await repository.fetchHomeData(showLoader: showLoader);
 
-      if (results[0].statusCode == 200) {
-        // products.value = parseProducts(results[0].body);
-      }
-
-      if (results[1].statusCode == 200) {
-        // categories.value = parseCategories(results[1].body);
+      if (response.statusCode == 200) {
+        final homeResponse = HomeResponse.fromJson(jsonDecode(response.body));
+        if (homeResponse.data != null) {
+          homeData.value = homeResponse.data;
+          banners.value = homeResponse.data!.banners ?? [];
+          categories.value = homeResponse.data!.categories ?? [];
+          newArrivals.value = homeResponse.data!.newArrivals ?? [];
+          bestSellers.value = homeResponse.data!.bestSellers ?? [];
+          featuredProducts.value = homeResponse.data!.featuredProducts ?? [];
+        }
       }
       
     } catch (e) {
       debugPrint("Error in HomeController: $e");
     } finally {
-      isLoading(false);
+      if (!showLoader) isLoading(false);
     }
   }
 
   Future<void> refreshData() async {
-    await getData();
+    await getHomeData(showLoader: false);
   }
 }

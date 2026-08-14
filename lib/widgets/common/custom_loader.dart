@@ -16,7 +16,7 @@ class CircularDotLoader extends StatefulWidget {
     required this.label,
     this.size = 100,
     this.dotCount = 16,
-    this.dotColor = Colors.white,
+    this.dotColor = const Color(0xff7C48B4),
     this.backgroundColor = const Color(0xFF9E9E9E),
     this.labelStyle,
     this.duration = const Duration(seconds: 2),
@@ -77,25 +77,25 @@ class _CircularDotLoaderState extends State<CircularDotLoader>
               vertical: 10,
             ),
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.20),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(6),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 6,
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
               ],
             ),
-            // child: Text(
-            //   widget.label,
-            //   style: widget.labelStyle ??
-            //       const TextStyle(
-            //         fontSize: 16,
-            //         fontWeight: FontWeight.w500,
-            //         color: Colors.black87,
-            //       ),
-            // ),
+            child: Text(
+              widget.label,
+              style: widget.labelStyle ??
+                  const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                  ),
+            ),
           ),
         ],
       ),

@@ -67,11 +67,18 @@ export 'package:rosewe_online_shopping/models/profile/profile_category_model.dar
 export 'package:rosewe_online_shopping/models/profile/profile_style_model.dart';
 export 'package:rosewe_online_shopping/models/profile/profile_country_model.dart';
 export 'package:rosewe_online_shopping/models/profile/profile_currency_model.dart';
+export 'package:rosewe_online_shopping/models/profile/address_model.dart';
+export 'package:rosewe_online_shopping/models/profile/state_model.dart';
+export 'package:rosewe_online_shopping/models/home/home_model.dart';
+export 'package:rosewe_online_shopping/models/home/cart_model.dart';
+export 'package:rosewe_online_shopping/models/profile/feedback_options_model.dart';
+export 'package:rosewe_online_shopping/models/category/category_tree_model.dart';
 
 // Routes
 export 'package:rosewe_online_shopping/routes/route_navigate.dart';
 
 // Packages
 export 'package:image_picker/image_picker.dart';
+export 'package:path_provider/path_provider.dart';
 export 'package:permission_handler/permission_handler.dart';
 export 'package:shared_preferences/shared_preferences.dart';

@@ -110,20 +110,14 @@ class DialogService {
 
   void showLoader({String? text}) {
     _loaderCount++;
-    if (_loaderCount > 1) return;
+    if (_loaderCount > 1) {
+      // Update message if already showing
+      DynamicOverlay.show(message: text ?? 'Loading...');
+      return;
+    }
 
-    FocusManager.instance.primaryFocus?.unfocus();
-    Get.dialog(
-      PopScope(
-        canPop: false,
-        child: Center(
-          child: CircularDotLoader(
-            label: text ?? 'Loading...',
-          ),
-        ),
-      ),
-      barrierDismissible: false,
-      barrierColor: Colors.black.withValues(alpha: 0.3),
+    DynamicOverlay.show(
+      message: text ?? 'Loading...',
     );
   }
 
@@ -131,9 +125,15 @@ class DialogService {
     if (_loaderCount > 0) {
       _loaderCount--;
     }
-    if (_loaderCount == 0 && (Get.isDialogOpen ?? false)) {
-      Get.back();
+    
+    if (_loaderCount == 0) {
+      DynamicOverlay.hide();
     }
+  }
+
+  void resetLoader() {
+    _loaderCount = 0;
+    DynamicOverlay.hide();
   }
 
   void showConfirmationDialog({

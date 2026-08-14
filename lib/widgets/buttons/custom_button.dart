@@ -1,6 +1,6 @@
 import 'package:rosewe_online_shopping/core/common_imports.dart';
 
-class GlossyButton extends StatelessWidget {
+class GlossyButton extends StatefulWidget {
   final String text;
   final double height;
   final double elevation;
@@ -40,22 +40,39 @@ class GlossyButton extends StatelessWidget {
   });
 
   @override
+  State<GlossyButton> createState() => _GlossyButtonState();
+}
+
+class _GlossyButtonState extends State<GlossyButton> {
+  static DateTime? _lastTapTime;
+
+  void _handleTap() {
+    final now = DateTime.now();
+    if (_lastTapTime == null || now.difference(_lastTapTime!) > const Duration(milliseconds: 1000)) {
+      _lastTapTime = now;
+      if (widget.onSubmit != null) {
+        widget.onSubmit!();
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: margin,
+      padding: widget.margin,
       child: InkWell(
-        onTap: onSubmit ?? () {},
-        borderRadius: BorderRadius.circular(borderRadius),
+        onTap: _handleTap,
+        borderRadius: BorderRadius.circular(widget.borderRadius),
         child: Container(
-          width: width,
-          height: height,
+          width: widget.width,
+          height: widget.height,
           decoration: BoxDecoration(
-            color: buttonColor,
-            borderRadius: BorderRadius.circular(borderRadius),
+            color: widget.buttonColor,
+            borderRadius: BorderRadius.circular(widget.borderRadius),
             boxShadow: [
               BoxShadow(
-                color: shadowColor ?? Colors.black.withValues(alpha: 0.2),
-                offset: Offset(0, 6),
+                color: widget.shadowColor ?? Colors.black.withValues(alpha: 0.2),
+                offset: const Offset(0, 6),
                 blurRadius: 10,
                 spreadRadius: 1,
               ),
@@ -66,7 +83,7 @@ class GlossyButton extends StatelessWidget {
               // Inner top white gradient shadow
               Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(borderRadius),
+                  borderRadius: BorderRadius.circular(widget.borderRadius),
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.center,
@@ -80,11 +97,11 @@ class GlossyButton extends StatelessWidget {
               // Centered button content
               Center(
                 child: CustomText(
-                  text: text,
-                  fontWeight: fontWeight,
-                  fontSize: fontSize,
-                  textColor: textColor,
-                  maxLine: maxLine,
+                  text: widget.text,
+                  fontWeight: widget.fontWeight,
+                  fontSize: widget.fontSize,
+                  textColor: widget.textColor,
+                  maxLine: widget.maxLine,
                 ),
               ),
             ],
@@ -96,7 +113,7 @@ class GlossyButton extends StatelessWidget {
 }
 
 
-class CustomButton extends StatelessWidget {
+class CustomButton extends StatefulWidget {
   final String text;
   final double height;
   final double elevation;
@@ -136,37 +153,53 @@ class CustomButton extends StatelessWidget {
   });
 
   @override
+  State<CustomButton> createState() => _CustomButtonState();
+}
+
+class _CustomButtonState extends State<CustomButton> {
+  static DateTime? _lastTapTime;
+
+  void _handleTap() {
+    final now = DateTime.now();
+    if (_lastTapTime == null || now.difference(_lastTapTime!) > const Duration(milliseconds: 1000)) {
+      _lastTapTime = now;
+      if (widget.onSubmit != null) {
+        widget.onSubmit!();
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: margin,
+      padding: widget.margin,
       child: InkWell(
-        onTap: onSubmit ?? () {},
-        borderRadius: BorderRadius.all(Radius.circular(borderRadius)),
+        onTap: _handleTap,
+        borderRadius: BorderRadius.all(Radius.circular(widget.borderRadius)),
         child: Material(
-          shadowColor: shadowColor,
-          elevation: elevation,
+          shadowColor: widget.shadowColor,
+          elevation: widget.elevation,
           color: Colors.transparent,
           child: Container(
-            width: width,
-            height: height,
-            padding: padding,
+            width: widget.width,
+            height: widget.height,
+            padding: widget.padding,
             decoration: BoxDecoration(
               border: Border.all(
-                color: borderColor,
-                width: widthDecoration, // Set the border width to 5
+                color: widget.borderColor,
+                width: widget.widthDecoration,
               ),
-              color: buttonColor,
-              borderRadius: BorderRadius.all(Radius.circular(borderRadius)),
+              color: widget.buttonColor,
+              borderRadius: BorderRadius.all(Radius.circular(widget.borderRadius)),
             ),
             child: Center(
               child: CustomText(
-                text: text,
-                fontWeight: fontWeight,
-                fontSize: fontSize,
-                textColor: textColor,
-                maxLine: maxLine,
+                text: widget.text,
+                fontWeight: widget.fontWeight,
+                fontSize: widget.fontSize,
+                textColor: widget.textColor,
+                maxLine: widget.maxLine,
                 fontFamily: 'Roboto',
-
               ),
             ),
           ),
@@ -176,7 +209,7 @@ class CustomButton extends StatelessWidget {
   }
 }
 
-class OutlineButton extends StatelessWidget {
+class OutlineButton extends StatefulWidget {
   final String text;
   final double height;
   final double elevation;
@@ -216,33 +249,50 @@ class OutlineButton extends StatelessWidget {
   });
 
   @override
+  State<OutlineButton> createState() => _OutlineButtonState();
+}
+
+class _OutlineButtonState extends State<OutlineButton> {
+  static DateTime? _lastTapTime;
+
+  void _handleTap() {
+    final now = DateTime.now();
+    if (_lastTapTime == null || now.difference(_lastTapTime!) > const Duration(milliseconds: 1000)) {
+      _lastTapTime = now;
+      if (widget.onSubmit != null) {
+        widget.onSubmit!();
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: margin,
+      padding: widget.margin,
       child: InkWell(
-        onTap: onSubmit ?? () {},
-        borderRadius: BorderRadius.all(Radius.circular(borderRadius)),
+        onTap: _handleTap,
+        borderRadius: BorderRadius.all(Radius.circular(widget.borderRadius)),
         child: PhysicalModel(
           color: Colors.transparent, // No background fill
-          elevation: elevation,
-          shadowColor: shadowColor ?? Colors.black.withValues(alpha: 0.4),
-          borderRadius: BorderRadius.circular(borderRadius),
+          elevation: widget.elevation,
+          shadowColor: widget.shadowColor ?? Colors.black.withValues(alpha: 0.4),
+          borderRadius: BorderRadius.circular(widget.borderRadius),
           child: Container(
-            width: width,
-            height: height,
-            padding: padding,
+            width: widget.width,
+            height: widget.height,
+            padding: widget.padding,
             decoration: BoxDecoration(
               color: Colors.transparent,
-              border: Border.all(color: borderColor, width: widthDecoration),
-              borderRadius: BorderRadius.all(Radius.circular(borderRadius)),
+              border: Border.all(color: widget.borderColor, width: widget.widthDecoration),
+              borderRadius: BorderRadius.all(Radius.circular(widget.borderRadius)),
             ),
             child: Center(
               child: CustomText(
-                text: text,
-                fontWeight: fontWeight,
-                fontSize: fontSize,
-                textColor: textColor,
-                maxLine: maxLine,
+                text: widget.text,
+                fontWeight: widget.fontWeight,
+                fontSize: widget.fontSize,
+                textColor: widget.textColor,
+                maxLine: widget.maxLine,
               ),
             ),
           ),
@@ -252,7 +302,7 @@ class OutlineButton extends StatelessWidget {
   }
 }
 
-class SocialButton extends StatelessWidget {
+class SocialButton extends StatefulWidget {
   final String text;
   final double height;
   final double width;
@@ -287,31 +337,47 @@ class SocialButton extends StatelessWidget {
   });
 
   @override
+  State<SocialButton> createState() => _SocialButtonState();
+}
+
+class _SocialButtonState extends State<SocialButton> {
+  static DateTime? _lastTapTime;
+
+  void _handleTap() {
+    final now = DateTime.now();
+    if (_lastTapTime == null || now.difference(_lastTapTime!) > const Duration(milliseconds: 1000)) {
+      _lastTapTime = now;
+      if (widget.onTap != null) {
+        widget.onTap!();
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: padding,
+      padding: widget.padding,
       child: InkWell(
-        onTap: onTap ?? () {},
-        borderRadius: BorderRadius.all(Radius.circular(borderRadius)),
+        onTap: _handleTap,
+        borderRadius: BorderRadius.all(Radius.circular(widget.borderRadius)),
         child: Container(
-          width: width,
-          height: height,
+          width: widget.width,
+          height: widget.height,
           decoration: BoxDecoration(
             border: Border.all(
-              color:
-                  borderColor, // Set the border color (optional, I set black)
-              width: widthDecoration, // Set the border width to 5
+              color: widget.borderColor,
+              width: widget.widthDecoration,
             ),
-            color: buttonColor,
-            borderRadius: BorderRadius.all(Radius.circular(borderRadius)),
+            color: widget.buttonColor,
+            borderRadius: BorderRadius.all(Radius.circular(widget.borderRadius)),
           ),
           alignment: Alignment.center,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (imageString != null) ...[
+              if (widget.imageString != null) ...[
                 CustomImage(
-                  imageString!,
+                  widget.imageString!,
                   width: 22,
                   height: 22,
                   fit: BoxFit.fitHeight,
@@ -320,10 +386,10 @@ class SocialButton extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(left: 8.0),
                 child: CustomText(
-                  text: text,
-                  fontWeight: fontWeight,
-                  fontSize: fontSize,
-                  textColor: textColor,
+                  text: widget.text,
+                  fontWeight: widget.fontWeight,
+                  fontSize: widget.fontSize,
+                  textColor: widget.textColor,
                 ),
               ),
             ],

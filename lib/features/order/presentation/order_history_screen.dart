@@ -20,11 +20,12 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   }
 
   Future<void> _fetchOrders() async {
-    setState(() => _isLoading = true);
+    if (mounted) setState(() => _isLoading = true);
     try {
-      final response = await ApiImplementation.getOrders();
+      final response = await ApiImplementation.getOrders(showLoader: false);
       if (response.statusCode == 200) {
         final orderResponse = OrderResponse.fromJson(jsonDecode(response.body));
+        if (!mounted) return;
         setState(() {
           _orders = orderResponse.data?.data ?? [];
         });
@@ -32,7 +33,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     } catch (e) {
       debugPrint("Error fetching orders: $e");
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -59,7 +60,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
         title: const CustomText(text: 'My Orders', fontSize: 18, fontWeight: FontWeight.bold),
       ),
       child: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.black))
+          ? const Center(child: CircularDotLoader(label: ''))
           : _orders.isEmpty
               ? const Center(
                   child: EmptyStateWidget(
@@ -85,7 +86,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Colors.grey.shade400),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

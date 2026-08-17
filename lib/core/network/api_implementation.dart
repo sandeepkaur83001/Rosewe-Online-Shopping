@@ -91,7 +91,7 @@ class ApiImplementation {
   }
 
   static Future<http.Response> updateProfile(Map<String, dynamic> body, {bool showLoader = true}) async {
-    return await ApiService.formPut(ApiEndpoints.profile, body: body, showLoader: showLoader);
+    return await ApiService.formPost(ApiEndpoints.profile, body: body, showLoader: showLoader);
   }
 
   // --- Address APIs ---
@@ -138,8 +138,16 @@ class ApiImplementation {
     return await ApiService.get(ApiEndpoints.categoryTree, headers: ApiService.defaultHeaders, showLoader: showLoader);
   }
 
+  static Future<http.Response> getProductCollection(dynamic id, {String param = 'category_id', bool showLoader = true}) async {
+    return await ApiService.get("${ApiEndpoints.productCollection}?$param=$id", headers: ApiService.defaultHeaders, showLoader: showLoader);
+  }
+
   static Future<http.Response> getNewInProducts({bool showLoader = true}) async {
     return await ApiService.get(ApiEndpoints.getNewIn, headers: ApiService.defaultHeaders, showLoader: showLoader);
+  }
+
+  static Future<http.Response> getProductDetail(int productId, {bool showLoader = true}) async {
+    return await ApiService.get(ApiEndpoints.productDetail(productId), headers: ApiService.defaultHeaders, showLoader: showLoader);
   }
 
   static Future<http.Response> getCartRecommendations({bool showLoader = true}) async {

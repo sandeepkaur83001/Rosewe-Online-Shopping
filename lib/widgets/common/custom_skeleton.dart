@@ -17,14 +17,18 @@ class CustomSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!isLoading) return child;
 
-    return Skeletonizer(
-      enabled: isLoading,
-      effect: const ShimmerEffect(
-        baseColor: Color(0xFFE0E0E0),
-        highlightColor: Color(0xFFF5F5F5),
-        duration: Duration(milliseconds: 1000),
-      ),
-      child: child,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Skeletonizer(
+          enabled: isLoading,
+          effect: const ShimmerEffect(
+            baseColor: Color(0xFFE0E0E0),
+            highlightColor: Color(0xFFF5F5F5),
+            duration: Duration(milliseconds: 1000),
+          ),
+          child: child,
+        );
+      },
     );
   }
 }

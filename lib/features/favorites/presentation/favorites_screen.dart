@@ -29,7 +29,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   Future<void> _fetchWishlist() async {
     setState(() => _isLoading = true);
     try {
-      final response = await ApiImplementation.getWishlist();
+      final response = await ApiImplementation.getWishlist(showLoader: false);
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
         if (decoded['data'] != null) {
@@ -49,7 +49,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
   void _handleToggleWishlist(int productId) async {
     final body = {'product_id': productId.toString()};
-    final response = await ApiImplementation.toggleWishlist(body);
+    final response = await ApiImplementation.toggleWishlist(body, showLoader: true);
     if (response.statusCode == 200) {
       _fetchWishlist(); // Refresh list
     }
@@ -79,7 +79,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         }
 
         if (_isLoading) {
-          return const Center(child: CircularProgressIndicator(color: Colors.black));
+          return const Center(child: CircularDotLoader(label: ''));
         }
 
         if (_wishlistItems.isEmpty) {

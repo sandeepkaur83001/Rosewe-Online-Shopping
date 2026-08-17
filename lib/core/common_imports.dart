@@ -39,7 +39,7 @@ export 'package:rosewe_online_shopping/core/utils/device_info_util.dart';
 export 'package:rosewe_online_shopping/core/utils/globals.dart';
 export 'package:rosewe_online_shopping/core/utils/pair.dart';
 export 'package:rosewe_online_shopping/core/utils/file_picker_helper.dart';
-
+export 'package:rosewe_online_shopping/widgets/common/custom_loader.dart';
 // Widgets
 export 'package:rosewe_online_shopping/widgets/buttons/custom_button.dart';
 export 'package:rosewe_online_shopping/widgets/buttons/back_button_custom.dart';

@@ -16,7 +16,7 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.0.3+1
 
 environment:
   sdk: ^3.10.4
@@ -68,6 +68,7 @@ dependencies:
   webview_flutter: ^4.14.1
   webview_flutter_android: ^4.12.0
   webview_flutter_wkwebview: ^3.25.1
+  pull_to_refresh: ^2.0.0
 
 dev_dependencies:
   # The "flutter_lints" package below contains a set of recommended lints to
@@ -125,3 +126,6 @@ flutter:
     - family: Humanist521
       fonts:
         - asset: assets/font/Humanist521BT.ttf
+    - family: PinyonScript
+      fonts:
+        - asset: assets/font/pinyonscript_regular.ttf

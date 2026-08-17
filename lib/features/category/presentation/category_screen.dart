@@ -1,6 +1,9 @@
 import 'package:rosewe_online_shopping/core/common_imports.dart';
 import 'package:rosewe_online_shopping/features/search/presentation/search_screen.dart';
 import 'package:rosewe_online_shopping/features/favorites/presentation/favorites_screen.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
+
+import '../../../widgets/common/custom_loader.dart';
 
 class CategoryScreen extends StatefulWidget {
   const CategoryScreen({super.key});
@@ -14,6 +17,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
   double _pullDistance = 0;
   List<CategoryNode> _categories = [];
   bool _isLoading = true;
+  final RefreshController _refreshController = RefreshController(initialRefresh: false);
 
   @override
   void initState() {
@@ -26,9 +30,10 @@ class _CategoryScreenState extends State<CategoryScreen> {
       setState(() => _isLoading = true);
     }
     try {
-      final response = await ApiImplementation.getCategoryTree(showLoader: !silent);
+      final response = await ApiImplementation.getCategoryTree(showLoader: false);
       if (response.statusCode == 200) {
         final treeResponse = CategoryTreeResponse.fromJson(jsonDecode(response.body));
+        if (!mounted) return;
         setState(() {
           _categories = treeResponse.data ?? [];
         });
@@ -36,19 +41,24 @@ class _CategoryScreenState extends State<CategoryScreen> {
     } catch (e) {
       debugPrint("Error fetching category tree: $e");
     } finally {
-      setState(() {
-        _isLoading = false;
-        _isRefreshing = false;
-        _pullDistance = 0;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isRefreshing = false;
+          _pullDistance = 0;
+        });
+      }
+      _refreshController.refreshCompleted();
     }
   }
 
   Future<void> _onRefresh() async {
     if (_isRefreshing) return;
-    setState(() {
-      _isRefreshing = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isRefreshing = true;
+      });
+    }
     await _fetchCategoryTree(silent: true);
   }
 
@@ -69,10 +79,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
           onPressed: () => RouteNavigate().navigateToPush(context, const FavoritesScreen()),
         ),
         actions: [
-          IconButton(
-            icon: Image.asset("assets/images/search_icon.png", height: 20, color: AppColors.blackColor),
-            onPressed: () => RouteNavigate().navigateToPush(context, const SearchScreen()),
-          ),
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
             child: IconButton(
@@ -83,36 +89,45 @@ class _CategoryScreenState extends State<CategoryScreen> {
         ],
       ),
       child: _isLoading 
-        ? const Center(child: CircularProgressIndicator(color: Colors.black))
-        : NotificationListener<ScrollNotification>(
-        onNotification: (ScrollNotification notification) {
-          if (notification is ScrollUpdateNotification) {
-            if (notification.metrics.pixels < 0) {
+        ? const Center(child: CircularDotLoader(label: ''))
+        : SmartRefresher(
+          controller: _refreshController,
+          onRefresh: _onRefresh,
+          enablePullDown: true,
+          header: CustomHeader(
+            height: 45,
+            refreshStyle: RefreshStyle.Follow,
+            onOffsetChange: (offset) {
               setState(() {
-                _pullDistance = -notification.metrics.pixels;
+                _pullDistance = offset;
               });
-            } else if (_pullDistance != 0) {
-              setState(() {
-                _pullDistance = 0;
-              });
-            }
-          }
-          if (notification is ScrollEndNotification) {
-            if (_pullDistance > 80) {
-              _onRefresh();
-            }
-          }
-          return false;
-        },
-        child: ListView.builder(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          itemCount: _categories.length + 1,
-          itemBuilder: (context, index) {
-            if (index == 0) return _buildRefreshBanner();
-            final category = _categories[index - 1];
-            return _buildCategoryItem(category);
-          },
+            },
+            builder: (context, mode) {
+              String text = 'Pull Down To Refresh';
+              if (mode == RefreshStatus.refreshing) {
+                text = 'UPDATING...';
+              } else if (mode == RefreshStatus.canRefresh) {
+                text = 'Release To Refresh';
+              } else if (mode == RefreshStatus.completed) {
+                text = 'UPDATED';
+              } else if (mode == RefreshStatus.failed) {
+                text = 'FAILED';
+              }
+              return _buildGreyRefreshBanner(
+                text,
+                height: _pullDistance > 45 ? _pullDistance : 45
+              );
+            },
+          ),
+          child: ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            itemCount: _categories.length,
+            itemBuilder: (context, index) {
+              final category = _categories[index];
+              return _buildCategoryItem(category);
+            },
+          ),
         ),
       ),
     );
@@ -136,20 +151,10 @@ class _CategoryScreenState extends State<CategoryScreen> {
     return _expandableCategory(category.name ?? '', subWidgets);
   }
 
-  Widget _buildRefreshBanner() {
-    String text = '';
-    if (_isRefreshing) {
-      text = 'UPDATING...';
-    } else if (_pullDistance > 10) {
-      text = _pullDistance > 80 ? 'Release To Refresh' : 'Pull Down To Refresh';
-    }
-
-    if (text.isEmpty) return const SizedBox.shrink();
-
+  Widget _buildGreyRefreshBanner(String text, {double? height}) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
       width: double.infinity,
-      height: 45,
+      height: height ?? 45,
       color: Colors.grey[200],
       alignment: Alignment.center,
       child: CustomText(

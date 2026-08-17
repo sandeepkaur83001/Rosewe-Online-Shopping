@@ -4,6 +4,8 @@ import 'package:rosewe_online_shopping/features/profile/presentation/account_set
 import 'package:rosewe_online_shopping/features/profile/controller/profile_controller.dart';
 import 'package:rosewe_online_shopping/features/order/presentation/order_history_screen.dart';
 import 'package:get/get.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
+
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -15,11 +17,24 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   int _selectedTab = 0; // 0 for My Favorites, 1 for You May Also Like
   final ProfileController _controller = Get.find<ProfileController>();
+  final RefreshController _refreshController = RefreshController(initialRefresh: false);
+  double _pullDistance = 0;
 
   @override
   void initState() {
     super.initState();
     _controller.fetchInitialData();
+  }
+
+  void _onRefresh() async {
+    await _controller.fetchProfile();
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (mounted) {
+      setState(() {
+        _pullDistance = 0;
+      });
+    }
+    _refreshController.refreshCompleted();
   }
 
   @override
@@ -33,25 +48,70 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Obx(() {
         if (_controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: CircularDotLoader(label: ''));
         }
-        return RefreshIndicator(
-          onRefresh: _controller.fetchProfile,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Column(
-              children: [
-                _buildHeader(context),
-                _buildOrderSection(),
-                _buildWalletSection(),
-                _buildServiceSection(),
-                _buildTabSection(),
-                if (_selectedTab == 0) _buildFavoritesContent() else _buildYouMayAlsoLikeContent(),
-              ],
+        return Column(
+          children: [
+            _buildHeader(context),
+            Expanded(
+              child: SmartRefresher(
+                controller: _refreshController,
+                onRefresh: _onRefresh,
+                enablePullDown: true,
+                header: CustomHeader(
+                  height: 45,
+                  refreshStyle: RefreshStyle.Follow,
+                  onOffsetChange: (offset) {
+                    setState(() {
+                      _pullDistance = offset;
+                    });
+                  },
+                  builder: (context, mode) {
+                    String text = 'Pull Down To Refresh';
+                    if (mode == RefreshStatus.refreshing) {
+                      text = 'UPDATING...';
+                    } else if (mode == RefreshStatus.canRefresh) {
+                      text = 'Release To Refresh';
+                    } else if (mode == RefreshStatus.completed) {
+                      text = 'UPDATED';
+                    } else if (mode == RefreshStatus.failed) {
+                      text = 'FAILED';
+                    }
+                    return _buildGreyRefreshBanner(
+                      text, 
+                      height: _pullDistance > 45 ? _pullDistance : 45
+                    );
+                  },
+                ),
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    _buildOrderSection(),
+                    _buildWalletSection(),
+                    _buildTabSection(),
+                    if (_selectedTab == 0) _buildFavoritesContent() else _buildYouMayAlsoLikeContent(),
+                  ],
+                ),
+              ),
             ),
-          ),
+            )],
         );
       }),
+    );
+  }
+
+  Widget _buildGreyRefreshBanner(String text, {double? height}) {
+    return Container(
+      width: double.infinity,
+      height: height ?? 45,
+      color: Colors.grey[200],
+      alignment: Alignment.center,
+      child: CustomText(
+        text: text,
+        fontSize: 14,
+        textColor: Colors.black45,
+      ),
     );
   }
 
@@ -137,12 +197,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       },
       content: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          _buildIconItem(Icons.credit_card, 'Pending', onTap: () => _navigateToOrders()),
-          _buildIconItem(Icons.inventory_2_outlined, 'Processing', onTap: () => _navigateToOrders()),
-          _buildIconItem(Icons.local_shipping_outlined, 'Shipped', onTap: () => _navigateToOrders()),
-          _buildIconItem(Icons.assignment_return_outlined, 'After-Sales', onTap: () => _navigateToOrders()),
+          Expanded(child: _buildIconItem(Icons.check_circle_outline, 'Confirmed', onTap: () => _navigateToOrders())),
+          Expanded(child: _buildIconItem(Icons.inventory_outlined, 'Delivered', onTap: () => _navigateToOrders())),
+          const Expanded(child: SizedBox()),
+          const Expanded(child: SizedBox()),
         ],
       ),
     );
@@ -164,36 +224,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Expanded(child: _buildIconItem(
-            Icons.confirmation_number_outlined, 
-            'Coupons', 
-            badgeValue: profile?.couponsCount?.toString()
-          )),
-          Expanded(child: _buildIconItem(
             Icons.layers_outlined, 
             'Points', 
             badgeValue: profile?.points?.toString()
           )),
-          Expanded(child: _buildIconItem(
-            Icons.account_balance_wallet_outlined, 
-            'Balance', 
-            badgeValue: profile?.balance != null ? '\$${profile!.balance!.toStringAsFixed(2)}' : null
-          )),
           const Expanded(child: SizedBox()),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildServiceSection() {
-    return _buildSectionContainer(
-      title: 'My Service',
-      content: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _buildIconItem(Icons.chat_bubble_outline, 'Messenger'),
-          _buildIconItem(Icons.headset_mic_outlined, 'Questions'),
-          _buildIconItem(Icons.mail_outline, 'Tickets'),
-          _buildIconItem(Icons.star_border, 'Review'),
+          const Expanded(child: SizedBox()),
+          const Expanded(child: SizedBox()),
         ],
       ),
     );

@@ -5,8 +5,8 @@ import 'package:get/get.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  DependencyInjection.init();
   await DeviceInfoUtil.init();
+  DependencyInjection.init();
 
   await PushNotifications.localNotificationInit();
   await PushNotifications().requestNotificationPermission();

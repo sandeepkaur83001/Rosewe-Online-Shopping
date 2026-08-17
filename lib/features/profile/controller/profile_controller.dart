@@ -24,8 +24,9 @@ class ProfileController extends GetxController {
 
   Future<void> _initialize() async {
     await checkLoginStatus();
+    // Fetch only basic profile info if logged in, avoid fetching countries/currencies/etc. until needed
     if (isLoggedIn.value) {
-      await fetchInitialData();
+      fetchProfile(showLoader: false);
     }
   }
 
@@ -38,7 +39,7 @@ class ProfileController extends GetxController {
     if (!isLoggedIn.value) return;
 
     await Future.wait([
-      fetchProfile(showLoader: true),
+      fetchProfile(showLoader: false),
       fetchCategories(),
       fetchStyles(),
       fetchCountries(),
@@ -48,7 +49,7 @@ class ProfileController extends GetxController {
 
   Future<void> fetchCategories() async {
     try {
-      final response = await ApiImplementation.getProfileCategories(showLoader: true);
+      final response = await ApiImplementation.getProfileCategories(showLoader: false);
       if (response != null && response.status == 200) {
         categories.value = response.data ?? [];
       }
@@ -59,7 +60,7 @@ class ProfileController extends GetxController {
 
   Future<void> fetchStyles() async {
     try {
-      final response = await ApiImplementation.getProfileStyles(showLoader: true);
+      final response = await ApiImplementation.getProfileStyles(showLoader: false);
       if (response != null && response.status == 200) {
         styles.value = response.data ?? [];
       }
@@ -70,7 +71,7 @@ class ProfileController extends GetxController {
 
   Future<void> fetchCountries() async {
     try {
-      final response = await ApiImplementation.getProfileCountries(showLoader: true);
+      final response = await ApiImplementation.getProfileCountries(showLoader: false);
       if (response != null && response.status == 200) {
         countries.value = response.data ?? [];
       }
@@ -81,7 +82,7 @@ class ProfileController extends GetxController {
 
   Future<void> fetchCurrencies() async {
     try {
-      final response = await ApiImplementation.getProfileCurrencies(showLoader: true);
+      final response = await ApiImplementation.getProfileCurrencies(showLoader: false);
       if (response != null && response.status == 200) {
         currencies.value = response.data ?? [];
       }
@@ -90,7 +91,7 @@ class ProfileController extends GetxController {
     }
   }
 
-  Future<void> fetchProfile({bool showLoader = true}) async {
+  Future<void> fetchProfile({bool showLoader = false}) async {
     if (Globals.BearerToken == null || Globals.BearerToken!.isEmpty) {
       debugPrint("Skipping fetchProfile: Token is null or empty");
       return;

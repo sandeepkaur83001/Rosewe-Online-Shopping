@@ -4,7 +4,10 @@ import 'package:intl/intl.dart';
 
 import 'package:rosewe_online_shopping/features/auth/presentation/login_screen.dart';
 import 'package:rosewe_online_shopping/features/profile/controller/profile_controller.dart';
+import 'package:rosewe_online_shopping/features/product/presentation/product_detail_screen.dart';
 import 'package:get/get.dart';
+import 'package:rosewe_online_shopping/widgets/common/custom_loader.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class NewInScreen extends StatefulWidget {
   const NewInScreen({super.key});
@@ -18,6 +21,7 @@ class _NewInScreenState extends State<NewInScreen> {
   double _pullDistance = 0;
   bool _isLoading = true;
   NewInData? _newInData;
+  final RefreshController _refreshController = RefreshController(initialRefresh: false);
 
   @override
   void initState() {
@@ -30,9 +34,10 @@ class _NewInScreenState extends State<NewInScreen> {
       setState(() => _isLoading = true);
     }
     try {
-      final response = await ApiImplementation.getNewInProducts(showLoader: !silent);
+      final response = await ApiImplementation.getNewInProducts(showLoader: false);
       if (response.statusCode == 200) {
         final newInResponse = NewInResponse.fromJson(jsonDecode(response.body));
+        if (!mounted) return;
         setState(() {
           _newInData = newInResponse.data;
         });
@@ -40,19 +45,24 @@ class _NewInScreenState extends State<NewInScreen> {
     } catch (e) {
       debugPrint("Error fetching New In products: $e");
     } finally {
-      setState(() {
-        _isLoading = false;
-        _isRefreshing = false;
-        _pullDistance = 0;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isRefreshing = false;
+          _pullDistance = 0;
+        });
+      }
+      _refreshController.refreshCompleted();
     }
   }
 
   Future<void> _onRefresh() async {
     if (_isRefreshing) return;
-    setState(() {
-      _isRefreshing = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isRefreshing = true;
+      });
+    }
     await _fetchData(silent: true);
   }
 
@@ -66,9 +76,9 @@ class _NewInScreenState extends State<NewInScreen> {
     }
 
     final body = {'product_id': productId.toString()};
-    final response = await ApiImplementation.toggleWishlist(body);
+    final response = await ApiImplementation.toggleWishlist(body, showLoader: true);
     if (response.statusCode == 200) {
-      _fetchData(silent: true);
+      if (mounted) _fetchData(silent: true);
     }
   }
 
@@ -96,60 +106,60 @@ class _NewInScreenState extends State<NewInScreen> {
         ),
       ),
       child: _isLoading 
-          ? const Center(child: CircularProgressIndicator(color: Colors.black))
-          : NotificationListener<ScrollNotification>(
-        onNotification: (ScrollNotification notification) {
-          if (notification is ScrollUpdateNotification) {
-            if (notification.metrics.pixels < 0) {
+          ? const Center(child: CircularDotLoader(label: ''))
+          : SmartRefresher(
+          controller: _refreshController,
+          onRefresh: _onRefresh,
+          enablePullDown: true,
+          header: CustomHeader(
+            height: 45,
+            refreshStyle: RefreshStyle.Follow,
+            onOffsetChange: (offset) {
               setState(() {
-                _pullDistance = -notification.metrics.pixels;
+                _pullDistance = offset;
               });
-            } else if (_pullDistance != 0) {
-              setState(() {
-                _pullDistance = 0;
-              });
-            }
-          }
-          if (notification is ScrollEndNotification) {
-            if (_pullDistance > 80) {
-              _onRefresh();
-            }
-          }
-          return false;
-        },
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            children: [
-              _buildRefreshBanner(),
-              const SizedBox(height: 10),
-              _buildCircularCategories(),
-              const SizedBox(height: 20),
-              _buildBanner(),
-              const SizedBox(height: 10),
-              _buildProductGrid(),
-              const SizedBox(height: 20),
-            ],
+            },
+            builder: (context, mode) {
+              String text = 'Pull Down To Refresh';
+              if (mode == RefreshStatus.refreshing) {
+                text = 'UPDATING NEW STYLES...';
+              } else if (mode == RefreshStatus.canRefresh) {
+                text = 'Release To Refresh';
+              } else if (mode == RefreshStatus.completed) {
+                text = 'UPDATED';
+              } else if (mode == RefreshStatus.failed) {
+                text = 'FAILED';
+              }
+              return _buildGreyRefreshBanner(
+                text,
+                height: _pullDistance > 45 ? _pullDistance : 45
+              );
+            },
+          ),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                const SizedBox(height: 10),
+                _buildCircularCategories(),
+                const SizedBox(height: 20),
+                _buildBanner(),
+                const SizedBox(height: 10),
+                _buildProductGrid(),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildRefreshBanner() {
-    String text = '';
-    if (_isRefreshing) {
-      text = 'UPDATING...';
-    } else if (_pullDistance > 10) {
-      text = _pullDistance > 80 ? 'Release To Refresh' : 'Pull Down To Refresh';
-    }
-
-    if (text.isEmpty) return const SizedBox.shrink();
-
+  Widget _buildGreyRefreshBanner(String text, {double? height}) {
     return Container(
       width: double.infinity,
-      height: 45,
-      color: Colors.grey[100],
+      height: height ?? 45,
+      color: Colors.grey[200],
       alignment: Alignment.center,
       child: CustomText(
         text: text,
@@ -236,90 +246,96 @@ class _NewInScreenState extends State<NewInScreen> {
       itemCount: products.length,
       itemBuilder: (context, index) {
         final product = products[index];
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Stack(
-                children: [
-                  NetworkImageView(
-                    url: product.image ?? '',
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                  ),
-                  Positioned(
-                    top: 10,
-                    right: 10,
-                    child: GestureDetector(
-                      onTap: () => _handleToggleWishlist(product.id),
-                      child: Icon(
-                        product.isFavorite == true ? Icons.favorite : Icons.favorite_border, 
-                        color: product.isFavorite == true ? Colors.red : AppColors.whiteColor,
-                      ),
-                    ),
-                  ),
-                  if (product.isSale == true)
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        color: Colors.red.withOpacity(0.8),
-                        child: const Center(
-                          child: CustomText(text: 'SALE', fontSize: 10, textColor: Colors.white, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
-                  if (product.isNew == true && product.isSale != true)
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        color: Colors.black.withOpacity(0.1),
-                        child: const Center(
-                          child: CustomText(text: 'NEW', fontSize: 10, textColor: Colors.white),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        return GestureDetector(
+          onTap: () => RouteNavigate().navigateToPush(
+            context,
+            ProductDetailScreen(productId: product.id!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Stack(
                   children: [
-                    if (product.salePrice != null) ...[
-                      CustomText(
-                        text: 'US\$${product.salePrice!.toStringAsFixed(2)}',
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        textColor: Colors.red,
+                    NetworkImageView(
+                      url: product.image ?? '',
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    ),
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: GestureDetector(
+                        onTap: () => _handleToggleWishlist(product.id),
+                        child: Icon(
+                          product.isFavorite == true ? Icons.favorite : Icons.favorite_border, 
+                          color: product.isFavorite == true ? Colors.red : AppColors.whiteColor,
+                        ),
                       ),
-                      CustomText(
-                        text: 'US\$${product.price!.toStringAsFixed(2)}',
-                        fontSize: 11,
-                        textColor: Colors.grey,
-                        decoration: TextDecoration.lineThrough,
+                    ),
+                    if (product.isSale == true)
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          color: Colors.red.withOpacity(0.8),
+                          child: const Center(
+                            child: CustomText(text: 'SALE', fontSize: 10, textColor: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                        ),
                       ),
-                    ] else ...[
-                      CustomText(
-                        text: 'US\$${product.price!.toStringAsFixed(2)}',
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+                    if (product.isNew == true && product.isSale != true)
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          color: Colors.black.withOpacity(0.1),
+                          child: const Center(
+                            child: CustomText(text: 'NEW', fontSize: 10, textColor: Colors.white),
+                          ),
+                        ),
                       ),
-                    ],
                   ],
                 ),
-                const Icon(Icons.shopping_bag_outlined, size: 20),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (product.salePrice != null) ...[
+                        CustomText(
+                          text: 'US\$${product.salePrice!.toStringAsFixed(2)}',
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          textColor: Colors.red,
+                        ),
+                        CustomText(
+                          text: 'US\$${product.price!.toStringAsFixed(2)}',
+                          fontSize: 11,
+                          textColor: Colors.grey,
+                          decoration: TextDecoration.lineThrough,
+                        ),
+                      ] else ...[
+                        CustomText(
+                          text: 'US\$${product.price!.toStringAsFixed(2)}',
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ],
+                    ],
+                  ),
+                  const Icon(Icons.shopping_bag_outlined, size: 20),
+                ],
+              ),
+            ],
+          ),
         );
       },
     );

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/scheduler.dart';
 import 'package:rosewe_online_shopping/core/common_imports.dart';
 import 'package:get/get.dart';
+import 'package:rosewe_online_shopping/widgets/common/custom_loader.dart';
 
 class DynamicOverlay {
   static Completer<void>? _completer;
@@ -26,6 +27,7 @@ class DynamicOverlay {
   }) {
     if (_blocked) return;
     _shouldShow = true;
+    logToConsole("DynamicOverlay: show called, message: $message, entry exists: ${_overlayEntry != null}");
 
     if (_overlayEntry != null) {
       _currentMessage = message;
@@ -39,22 +41,37 @@ class DynamicOverlay {
     _completer = Completer<void>();
 
     void insertOverlay() {
-      if (!_shouldShow || _overlayEntry != null) return;
+      if (!_shouldShow || _overlayEntry != null) {
+        logToConsole("DynamicOverlay: insertOverlay aborted - shouldShow: $_shouldShow, entry: ${_overlayEntry != null}");
+        return;
+      }
 
       OverlayState? overlayState;
       try {
-        overlayState = Get.overlayContext != null ? Overlay.maybeOf(Get.overlayContext!) : null;
+        // Try the Get.key (standard Navigator key in GetX)
+        overlayState = Get.key.currentState?.overlay;
+        
+        // Fallbacks
+        if (overlayState == null) {
+          if (Get.overlayContext != null) {
+            overlayState = Overlay.maybeOf(Get.overlayContext!);
+          }
+          overlayState ??= Overlay.maybeOf(Get.context!);
+        }
       } catch (e) {
+        logToConsole("DynamicOverlay: Exception finding overlayState: $e");
         overlayState = null;
       }
       
       if (overlayState == null) {
+        logToConsole("DynamicOverlay: overlayState is STILL NULL, retrying next frame...");
         SchedulerBinding.instance.addPostFrameCallback((_) {
           insertOverlay();
         });
         return;
       }
 
+      logToConsole("DynamicOverlay: Inserting OverlayEntry...");
       _overlayEntry = OverlayEntry(
         builder: (BuildContext ctx) {
           return PopScope(
@@ -62,11 +79,15 @@ class DynamicOverlay {
             child: Material(
               color: Colors.transparent,
               child: Container(
-                color: Colors.black.withOpacity(0.6),
+                color: Colors.black.withValues(alpha: 0.5), // Increased opacity
                 alignment: Alignment.center,
                 child: isNoInternet
                     ? _buildNoInternet()
-                    : _buildLoader(_currentMessage),
+                    : CircularDotLoader(
+                        label: _currentMessage ?? '',
+                        size: 110,
+                        backgroundColor: const Color(0xFF424242).withValues(alpha: 0.9), // More solid background
+                      ),
               ),
             ),
           );
@@ -75,9 +96,10 @@ class DynamicOverlay {
 
       try {
         overlayState.insert(_overlayEntry!);
+        logToConsole("DynamicOverlay: OverlayEntry inserted successfully");
       } catch (e) {
         _overlayEntry = null;
-        debugPrint("Error inserting DynamicOverlay: $e");
+        logToConsole("DynamicOverlay: Error during insertion: $e");
       }
     }
 
@@ -163,11 +185,13 @@ class DynamicOverlay {
 
   static void hide() {
     _shouldShow = false;
+    logToConsole("DynamicOverlay: hide called, entry exists: ${_overlayEntry != null}");
     if (_overlayEntry != null) {
       try {
         _overlayEntry?.remove();
+        logToConsole("DynamicOverlay: OverlayEntry removed");
       } catch (e) {
-        debugPrint("Error removing DynamicOverlay: $e");
+        logToConsole("DynamicOverlay: Error removing entry: $e");
       }
       _overlayEntry = null;
       _currentMessage = null;

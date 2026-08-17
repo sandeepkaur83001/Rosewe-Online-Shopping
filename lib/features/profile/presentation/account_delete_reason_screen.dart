@@ -23,13 +23,15 @@ class _AccountDeleteReasonScreenState extends State<AccountDeleteReasonScreen> {
   }
 
   Future<void> _fetchReasons() async {
-    final response = await ApiImplementation.getDeleteReasons();
+    final response = await ApiImplementation.getDeleteReasons(showLoader: false);
     if (response != null && response.data != null) {
+      if (!mounted) return;
       setState(() {
         _reasons = response.data!;
         _isLoading = false;
       });
     } else {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
@@ -92,78 +94,158 @@ class _AccountDeleteReasonScreenState extends State<AccountDeleteReasonScreen> {
   @override
   Widget build(BuildContext context) {
     return BaseScreen(
+      color: const Color(0xFFF5F5F5), // Light gray background matching image
       appBar: AppBar(
         backgroundColor: AppColors.whiteColor,
-        elevation: 0.5,
+        elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.blackColor),
           onPressed: () => Navigator.pop(context),
         ),
         title: const CustomText(text: 'Delete Account', fontSize: 18, fontWeight: FontWeight.bold),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Divider(height: 1, color: Colors.grey.withValues(alpha: 0.2)),
+        ),
       ),
       child: _isLoading 
-          ? const Center(child: CircularProgressIndicator(color: Colors.black))
+          ? const Center(child: CircularDotLoader(label: ''))
           : Column(
         children: [
-          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+            child: const CustomText(
+              text: 'Please select reason for deletion',
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           Expanded(
-            child: ListView.separated(
+            child: ListView(
               padding: EdgeInsets.zero,
-              itemCount: _reasons.length,
-              separatorBuilder: (context, index) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final reason = _reasons[index];
-                return Column(
-                  children: [
-                    RadioListTile<DeleteReasonData>(
-                      title: CustomText(text: reason.reason ?? '', fontSize: 14),
-                      value: reason,
-                      groupValue: _selectedReason,
-                      activeColor: Colors.black,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedReason = value;
-                        });
-                      },
-                    ),
-                    if (reason.reason?.toLowerCase() == 'other' && _selectedReason?.id == reason.id)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                        child: TextField(
-                          controller: _otherReasonController,
-                          maxLines: 3,
-                          onChanged: (_) => setState(() {}),
-                          decoration: InputDecoration(
-                            hintText: 'Please tell us why you want to delete your account...',
-                            hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
-                            border: OutlineInputBorder(
-                              borderSide: BorderSide(color: Colors.grey.shade300),
-                            ),
-                            focusedBorder: const OutlineInputBorder(
-                              borderSide: BorderSide(color: Colors.black),
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
+              children: [
+                _buildReasonsList(),
+                const SizedBox(height: 12),
+                _buildOtherSection(),
+              ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(20.0),
+            padding: const EdgeInsets.symmetric(horizontal: 50.0, vertical: 20),
             child: CustomButton(
               text: 'NEXT',
               buttonColor: _isNextEnabled ? AppColors.blackColor : Colors.grey[300]!,
               textColor: _isNextEnabled ? AppColors.whiteColor : Colors.white,
               borderRadius: 0,
-              height: 45,
+              height: 48,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
               onSubmit: _isNextEnabled ? _handleDeleteAccount : null,
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 10),
         ],
+      ),
+    );
+  }
+
+  Widget _buildReasonsList() {
+    final standardReasons = _reasons.where((r) => r.reason?.toLowerCase() != 'other').toList();
+    
+    return Container(
+      color: Colors.white,
+      child: ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: standardReasons.length,
+        separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey.withValues(alpha: 0.1), indent: 16),
+        itemBuilder: (context, index) {
+          final reason = standardReasons[index];
+          return _buildRadioItem(reason);
+        },
+      ),
+    );
+  }
+
+  Widget _buildOtherSection() {
+    final otherReason = _reasons.firstWhereOrNull((r) => r.reason?.toLowerCase() == 'other');
+    if (otherReason == null) return const SizedBox.shrink();
+
+    bool isSelected = _selectedReason?.id == otherReason.id;
+
+    return Container(
+
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.grey.withAlpha(80))
+      ),
+
+      child: Column(
+        children: [
+          _buildRadioItem(otherReason),
+          if (isSelected)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 36),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF7F7F7),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: TextField(
+                  controller: _otherReasonController,
+                  maxLines: 6,
+                  onChanged: (_) => setState(() {}),
+                  style: const TextStyle(fontSize: 14),
+                  decoration: const InputDecoration(
+                    hintText: 'Please enter other reason',
+                    hintStyle: TextStyle(fontSize: 14, color: Colors.grey),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.all(12),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRadioItem(DeleteReasonData reason) {
+    bool isSelected = _selectedReason?.id == reason.id;
+    
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedReason = reason;
+        });
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? const Color(0xFFFF5722) : Colors.grey.shade300,
+                  width: isSelected ? 6 : 1,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: CustomText(
+                text: reason.reason ?? '',
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                textColor: Colors.black87,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

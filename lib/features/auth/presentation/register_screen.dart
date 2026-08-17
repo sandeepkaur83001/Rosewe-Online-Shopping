@@ -257,7 +257,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'longitude': position?.longitude.toString() ?? '',
       };
 
-      final response = await ApiImplementation.register(body, showLoader: true);
+      final response = await ApiImplementation.register(body, showLoader: false);
 
       if (response != null && (response.status == 200 || response.status == 201)) {
         if (response.data?.token != null) {

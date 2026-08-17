@@ -110,14 +110,14 @@ class DialogService {
 
   void showLoader({String? text}) {
     _loaderCount++;
+    logToConsole("DialogService: showLoader called, count: $_loaderCount");
     if (_loaderCount > 1) {
-      // Update message if already showing
-      DynamicOverlay.show(message: text ?? 'Loading...');
+      DynamicOverlay.show(message: text ?? '');
       return;
     }
 
     DynamicOverlay.show(
-      message: text ?? 'Loading...',
+      message: text ?? '',
     );
   }
 
@@ -125,6 +125,7 @@ class DialogService {
     if (_loaderCount > 0) {
       _loaderCount--;
     }
+    logToConsole("DialogService: hideLoader called, count: $_loaderCount");
     
     if (_loaderCount == 0) {
       DynamicOverlay.hide();

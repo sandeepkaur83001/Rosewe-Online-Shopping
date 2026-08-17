@@ -7,8 +7,9 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BaseScreen(
-      child: Stack(
+    return Scaffold(
+
+      body: Stack(
         children: [
           // Background Image
           Positioned.fill(
@@ -80,7 +81,7 @@ class WelcomeScreen extends StatelessWidget {
                   decoration: TextDecoration.underline,
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 60),
             ],
           ),
         ],

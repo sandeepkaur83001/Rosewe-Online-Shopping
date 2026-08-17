@@ -11,17 +11,42 @@ class HomeController extends GetxController {
   
   var banners = <HomeBanner>[].obs;
   var categories = <HomeCategory>[].obs;
+  var announcements = <HomeAnnouncement>[].obs;
+  var offerCategory = Rxn<HomeOfferCategory>();
   var newArrivals = [].obs;
   var bestSellers = [].obs;
   var featuredProducts = [].obs;
 
+  var tabProducts = [].obs;
+  var isTabLoading = false.obs;
+
   @override
   void onInit() {
     super.onInit();
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    await SharedManager.getToken();
     getHomeData();
   }
 
-  Future<void> getHomeData({bool showLoader = true}) async {
+  Future<void> fetchTabProducts(String type) async {
+    try {
+      isTabLoading(true);
+      final response = await ApiImplementation.getProductCollection(type, param: 'type', showLoader: false);
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        tabProducts.value = decoded['data'] ?? [];
+      }
+    } catch (e) {
+      debugPrint("Error fetching tab products: $e");
+    } finally {
+      isTabLoading(false);
+    }
+  }
+
+  Future<void> getHomeData({bool showLoader = false}) async {
     try {
       if (!showLoader) isLoading(true);
       
@@ -33,6 +58,8 @@ class HomeController extends GetxController {
           homeData.value = homeResponse.data;
           banners.value = homeResponse.data!.banners ?? [];
           categories.value = homeResponse.data!.categories ?? [];
+          announcements.value = homeResponse.data!.announcements ?? [];
+          offerCategory.value = homeResponse.data!.homeOfferCategory;
           newArrivals.value = homeResponse.data!.newArrivals ?? [];
           bestSellers.value = homeResponse.data!.bestSellers ?? [];
           featuredProducts.value = homeResponse.data!.featuredProducts ?? [];

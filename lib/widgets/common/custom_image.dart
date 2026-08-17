@@ -63,7 +63,7 @@ class CustomImage extends StatelessWidget {
           fit: fit,
           color: color,
           placeholder: (context, url) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularDotLoader(label: '', size: 30));
           },
           errorWidget: (context, url, error) {
             return Image.asset(

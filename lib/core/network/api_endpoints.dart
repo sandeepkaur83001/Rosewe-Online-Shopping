@@ -34,6 +34,8 @@ class ApiEndpoints {
   // Others
   static const String home = "home";
   static const String getProducts = "products/list";
+  static String productDetail(int productId) => "products/$productId";
+  static const String productCollection = "products/collection";
   static const String getNewIn = "products/new-in";
   static const String cartRecommendations = "recommendations/cart";
   static const String addToCart = "cart/add";

@@ -23,11 +23,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _fetchAddresses() async {
-    setState(() => _isLoading = true);
+    if (mounted) setState(() => _isLoading = true);
     try {
-      final response = await ApiImplementation.getAddresses();
+      final response = await ApiImplementation.getAddresses(showLoader: false);
       if (response.statusCode == 200) {
         final addressResponse = AddressResponse.fromJson(jsonDecode(response.body));
+        if (!mounted) return;
         setState(() {
           _addresses = addressResponse.data ?? [];
           if (_addresses.isNotEmpty) {
@@ -38,7 +39,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     } catch (e) {
       debugPrint("Error fetching addresses: $e");
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -56,7 +57,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final checkoutResponse = await ApiImplementation.checkout(checkoutBody);
     if (checkoutResponse.statusCode == 200 || checkoutResponse.statusCode == 201) {
       final decodedCheckout = jsonDecode(checkoutResponse.body);
-      final orderId = decodedCheckout['data']['id'].toString();
+      
+      // The order ID might be under 'data' -> 'id' or directly under 'data'
+      final dynamic data = decodedCheckout['data'];
+      String? orderId;
+      
+      if (data is Map) {
+        orderId = data['id']?.toString() ?? data['order_id']?.toString();
+      } else if (data is num || data is String) {
+        orderId = data.toString();
+      }
+
+      if (orderId == null || orderId == "null") {
+        CustomToast.showToast(message: 'Failed to retrieve Order ID');
+        return;
+      }
 
       // 2. Call Confirm Checkout API
       final confirmBody = {
@@ -118,7 +133,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ),
       ),
       child: _isLoading 
-          ? const Center(child: CircularProgressIndicator(color: Colors.black))
+          ? const Center(child: CircularDotLoader(label: ''))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(

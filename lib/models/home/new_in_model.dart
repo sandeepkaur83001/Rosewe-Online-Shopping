@@ -25,7 +25,11 @@ class NewInData {
   factory NewInData.fromJson(Map<String, dynamic> json) {
     return NewInData(
       dates: json['dates'] != null ? List<String>.from(json['dates']) : null,
-      products: json['products'] != null ? ProductPagination.fromJson(json['products']) : null,
+      products: json['products'] != null 
+          ? (json['products'] is List 
+              ? ProductPagination(data: (json['products'] as List).map((i) => NewInProduct.fromJson(i)).toList())
+              : ProductPagination.fromJson(json['products']))
+          : null,
     );
   }
 }

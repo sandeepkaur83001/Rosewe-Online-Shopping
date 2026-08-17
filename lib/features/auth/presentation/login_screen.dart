@@ -218,7 +218,7 @@ class _LoginScreenState extends State<LoginScreen> {
           'longitude': position?.longitude.toString() ?? '',
         };
 
-        final response = await ApiImplementation.socialLogin(body, showLoader: true);
+        final response = await ApiImplementation.socialLogin(body, showLoader: false);
 
         if (response != null && (response.status == 200 || response.status == 201)) {
           if (response.data?.token != null) {

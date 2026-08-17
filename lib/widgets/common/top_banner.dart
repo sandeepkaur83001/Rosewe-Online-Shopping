@@ -93,9 +93,11 @@ class TopBannerState extends State<TopBanner> {
                   const SizedBox(
                     height: 18,
                     width: 18,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
+                    child: CircularDotLoader(
+                      dotColor: Colors.white,
+                      backgroundColor: Colors.transparent,
+                      size: 18,
+                      label: '',
                     ),
                   ),
 

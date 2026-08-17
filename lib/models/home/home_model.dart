@@ -19,6 +19,8 @@ class HomeResponse {
 class HomeData {
   final List<HomeBanner>? banners;
   final List<HomeCategory>? categories;
+  final List<HomeAnnouncement>? announcements;
+  final HomeOfferCategory? homeOfferCategory;
   final dynamic flashSale;
   final List<dynamic>? newArrivals;
   final List<dynamic>? bestSellers;
@@ -27,6 +29,8 @@ class HomeData {
   HomeData({
     this.banners,
     this.categories,
+    this.announcements,
+    this.homeOfferCategory,
     this.flashSale,
     this.newArrivals,
     this.bestSellers,
@@ -41,10 +45,46 @@ class HomeData {
       categories: (json['categories'] as List?)
           ?.map((i) => HomeCategory.fromJson(i))
           .toList(),
+      announcements: (json['announcements'] as List?)
+          ?.map((i) => HomeAnnouncement.fromJson(i))
+          .toList(),
+      homeOfferCategory: json['home_offer_category'] != null 
+          ? HomeOfferCategory.fromJson(json['home_offer_category']) 
+          : null,
       flashSale: json['flash_sale'],
       newArrivals: json['new_arrivals'] as List?,
       bestSellers: json['best_sellers'] as List?,
       featuredProducts: json['featured_products'] as List?,
+    );
+  }
+}
+
+class HomeOfferCategory {
+  final String? label;
+  final List<HomeCategory>? categories;
+
+  HomeOfferCategory({this.label, this.categories});
+
+  factory HomeOfferCategory.fromJson(Map<String, dynamic> json) {
+    return HomeOfferCategory(
+      label: json['label'],
+      categories: (json['categories'] as List?)
+          ?.map((i) => HomeCategory.fromJson(i))
+          .toList(),
+    );
+  }
+}
+
+class HomeAnnouncement {
+  final int? id;
+  final String? title;
+
+  HomeAnnouncement({this.id, this.title});
+
+  factory HomeAnnouncement.fromJson(Map<String, dynamic> json) {
+    return HomeAnnouncement(
+      id: json['id'],
+      title: json['title'],
     );
   }
 }

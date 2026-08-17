@@ -12,6 +12,7 @@ class NewAddressScreen extends StatefulWidget {
 
 class _NewAddressScreenState extends State<NewAddressScreen> {
   final ProfileController _profileController = Get.find<ProfileController>();
+  bool _isLoading = false;
   
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _firstNameController = TextEditingController();
@@ -59,16 +60,19 @@ class _NewAddressScreenState extends State<NewAddressScreen> {
   }
 
   Future<void> _fetchStates(String countryId) async {
-    setState(() {
-      _isStatesLoading = true;
-      _selectedState = null;
-      _states = [];
-    });
+    if (mounted) {
+      setState(() {
+        _isStatesLoading = true;
+        _selectedState = null;
+        _states = [];
+      });
+    }
 
     try {
       final response = await ApiImplementation.getStates(countryId, showLoader: false);
       if (response.statusCode == 200) {
         final stateResponse = StateResponse.fromJson(jsonDecode(response.body));
+        if (!mounted) return;
         setState(() {
           _states = stateResponse.data ?? [];
           if (widget.address != null && widget.address!.stateId != null) {
@@ -79,9 +83,11 @@ class _NewAddressScreenState extends State<NewAddressScreen> {
     } catch (e) {
       debugPrint("Error fetching states: $e");
     } finally {
-      setState(() {
-        _isStatesLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isStatesLoading = false;
+        });
+      }
     }
   }
 
@@ -128,6 +134,8 @@ class _NewAddressScreenState extends State<NewAddressScreen> {
       return;
     }
 
+    setState(() => _isLoading = true);
+
     final body = {
       'type': 'home',
       'email': _emailController.text,
@@ -143,16 +151,22 @@ class _NewAddressScreenState extends State<NewAddressScreen> {
       'is_default': widget.address?.isDefault?.toString() ?? '1',
     };
 
-    final response = widget.address == null 
-        ? await ApiImplementation.addAddress(body)
-        : await ApiImplementation.updateAddress(widget.address!.id.toString(), body);
+    try {
+      final response = widget.address == null 
+          ? await ApiImplementation.addAddress(body, showLoader: false)
+          : await ApiImplementation.updateAddress(widget.address!.id.toString(), body, showLoader: false);
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      CustomToast.showToast(message: widget.address == null ? 'Address added successfully' : 'Address updated successfully');
-      if (mounted) Navigator.pop(context, true);
-    } else {
-      final error = jsonDecode(response.body);
-      CustomToast.showToast(message: error['message'] ?? 'Failed to save address');
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        CustomToast.showToast(message: widget.address == null ? 'Address added successfully' : 'Address updated successfully');
+        if (mounted) Navigator.pop(context, true);
+      } else {
+        final error = jsonDecode(response.body);
+        CustomToast.showToast(message: error['message'] ?? 'Failed to save address');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -174,7 +188,7 @@ class _NewAddressScreenState extends State<NewAddressScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      bottomNavigationBar: Padding(
+      bottomNavigationBar: _isLoading ? null : Padding(
         padding: const EdgeInsets.all(20.0),
         child: CustomButton(
           text: 'SAVE',
@@ -185,7 +199,9 @@ class _NewAddressScreenState extends State<NewAddressScreen> {
           onSubmit: _handleSave,
         ),
       ),
-      child: SingleChildScrollView(
+      child: _isLoading 
+          ? const Center(child: CircularDotLoader(label: ''))
+          : SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -312,7 +328,7 @@ class _NewAddressScreenState extends State<NewAddressScreen> {
             border: Border.all(color: hasError ? Colors.red : Colors.grey.shade300),
           ),
           child: _isStatesLoading 
-              ? const SizedBox(height: 48, child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))))
+              ? const SizedBox(height: 48, child: Center(child: CircularDotLoader(label: '', size: 30)))
               : DropdownButtonHideUnderline(
                   child: DropdownButton<StateData>(
                     value: _selectedState,

@@ -80,7 +80,7 @@ class SharedManager {
 
   static Future<bool?> getToken() async {
     if (Globals.BearerToken != null && Globals.BearerToken!.isNotEmpty) {
-      CommonApiClass().normalPrintJson("USER_BEARER_TOKEN  ${Globals.BearerToken}");
+      logToConsole("USER_BEARER_TOKEN (from cache)  ${Globals.BearerToken}");
       return true;
     } else {
       String? data = await getStringSharePreferences(SharedConstants.LOGIN_MODEL);
@@ -92,7 +92,7 @@ class SharedManager {
           debugPrint("Error parsing stored login model: $e");
         }
       }
-      CommonApiClass().normalPrintJson("USER_BEARER_TOKEN  ${Globals.BearerToken}");
+      logToConsole("USER_BEARER_TOKEN (from storage)  ${Globals.BearerToken}");
 
       return (Globals.BearerToken != null && Globals.BearerToken!.isNotEmpty) ? true : false;
     }

@@ -6,6 +6,8 @@ class NetworkImageView extends StatelessWidget {
   final double? height;
   final BoxFit fit;
   final double borderRadius;
+  final Widget? placeholder;
+  final Alignment alignment;
 
   const NetworkImageView({
     super.key,
@@ -14,6 +16,8 @@ class NetworkImageView extends StatelessWidget {
     this.height,
     this.fit = BoxFit.cover,
     this.borderRadius = 0,
+    this.placeholder,
+    this.alignment = Alignment.center,
   });
 
   @override
@@ -23,26 +27,26 @@ class NetworkImageView extends StatelessWidget {
       width: width,
       height: height,
       fit: fit,
-      placeholder: (context, url) => SizedBox(
-        width: width,
-        height: height,
-        child: CustomSkeleton(
-          isLoading: true,
-          child: Container(
-            width: width ?? double.infinity,
-            height: height ?? double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(borderRadius),
-            ),
+      alignment: alignment,
+      placeholder: (context, url) => placeholder ?? CustomSkeleton(
+        isLoading: true,
+        child: Container(
+          width: width ?? double.infinity,
+          height: height ?? double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.grey[300],
+            borderRadius: BorderRadius.circular(borderRadius),
           ),
         ),
       ),
-      errorWidget: (context, url, error) => Container(
-        width: width,
-        height: height,
+      errorWidget: (context, url, error) => placeholder ?? Container(
+        width: width ?? double.infinity,
+        height: height ?? double.infinity,
         color: Colors.grey[200],
-        child: const Icon(Icons.broken_image, color: Colors.grey),
+        child: Center(
+          child: Image.asset("assets/images/rosewe_logo_clean.png", color: Colors.white.withOpacity(0.1),
+            colorBlendMode: BlendMode.modulate,),
+        ),
       ),
     );
 

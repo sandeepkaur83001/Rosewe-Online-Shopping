@@ -21,7 +21,7 @@ class _AddressBookScreenState extends State<AddressBookScreen> {
   Future<void> _fetchAddresses() async {
     setState(() => _isLoading = true);
     try {
-      final response = await ApiImplementation.getAddresses();
+      final response = await ApiImplementation.getAddresses(showLoader: false);
       if (response.statusCode == 200) {
         final addressResponse = AddressResponse.fromJson(jsonDecode(response.body));
         setState(() {
@@ -64,7 +64,7 @@ class _AddressBookScreenState extends State<AddressBookScreen> {
         ),
       ),
       child: _isLoading 
-          ? const Center(child: CircularProgressIndicator(color: Colors.black))
+          ? const Center(child: CircularDotLoader(label: ''))
           : _addresses.isEmpty
               ? const Center(
                   child: EmptyStateWidget(

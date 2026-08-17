@@ -5,6 +5,10 @@ import 'package:rosewe_online_shopping/models/home/new_in_model.dart';
 import 'package:get/get.dart';
 import 'package:rosewe_online_shopping/features/profile/controller/profile_controller.dart';
 import 'package:rosewe_online_shopping/features/checkout/presentation/checkout_screen.dart';
+import 'package:rosewe_online_shopping/features/product/presentation/product_detail_screen.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
+
+import '../../../widgets/common/custom_loader.dart';
 
 class BagScreen extends StatefulWidget {
   const BagScreen({super.key});
@@ -21,6 +25,7 @@ class _BagScreenState extends State<BagScreen> {
   List<CartItem> _cartItems = [];
   CartData? _cartData;
   bool _isLoading = true;
+  final RefreshController _refreshController = RefreshController(initialRefresh: false);
 
   @override
   void initState() {
@@ -30,7 +35,7 @@ class _BagScreenState extends State<BagScreen> {
 
   Future<void> _loadData({bool silent = false}) async {
     if (!silent) {
-      setState(() => _isLoading = true);
+      if (mounted) setState(() => _isLoading = true);
     }
     List<Future> futures = [_fetchRecommendations(silent: true)];
     if (_profileController.isLoggedIn.value) {
@@ -38,15 +43,16 @@ class _BagScreenState extends State<BagScreen> {
     }
     await Future.wait(futures);
     if (!silent) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _fetchCart({bool silent = false}) async {
     try {
-      final response = await ApiImplementation.getCart(showLoader: !silent);
+      final response = await ApiImplementation.getCart(showLoader: false);
       if (response.statusCode == 200) {
         final cartRes = CartResponse.fromJson(jsonDecode(response.body));
+        if (!mounted) return;
         setState(() {
           _cartData = cartRes.data;
           _cartItems = cartRes.data?.items ?? [];
@@ -59,10 +65,11 @@ class _BagScreenState extends State<BagScreen> {
 
   Future<void> _fetchRecommendations({bool silent = false}) async {
     try {
-      final response = await ApiImplementation.getCartRecommendations(showLoader: !silent);
+      final response = await ApiImplementation.getCartRecommendations(showLoader: false);
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
         if (decoded['data'] != null) {
+          if (!mounted) return;
           setState(() {
             _recommendations = (decoded['data'] as List)
                 .map((i) => NewInProduct.fromJson(i))
@@ -73,20 +80,23 @@ class _BagScreenState extends State<BagScreen> {
     } catch (e) {
       debugPrint("Error fetching cart recommendations: $e");
     } finally {
-      if (silent) {
+      if (silent && mounted) {
         setState(() {
           _isRefreshing = false;
           _pullDistance = 0;
         });
       }
+      _refreshController.refreshCompleted();
     }
   }
 
   Future<void> _onRefresh() async {
     if (_isRefreshing) return;
-    setState(() {
-      _isRefreshing = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isRefreshing = true;
+      });
+    }
     await _loadData(silent: true);
   }
 
@@ -99,7 +109,7 @@ class _BagScreenState extends State<BagScreen> {
       return;
     }
     final body = {'product_id': productId.toString(), 'quantity': '1'};
-    final response = await ApiImplementation.addToCart(body);
+    final response = await ApiImplementation.addToCart(body, showLoader: true);
     if (response.statusCode == 200 || response.statusCode == 201) {
       CustomToast.showToast(message: 'Product added to bag successfully');
       _fetchCart(silent: true);
@@ -112,14 +122,14 @@ class _BagScreenState extends State<BagScreen> {
   void _handleUpdateQuantity(int productId, int newQuantity) async {
     if (newQuantity < 1) return;
     final body = {'product_id': productId.toString(), 'quantity': newQuantity.toString()};
-    final response = await ApiImplementation.updateCart(body);
+    final response = await ApiImplementation.updateCart(body, showLoader: true);
     if (response.statusCode == 200 || response.statusCode == 201) {
       _fetchCart(silent: true);
     }
   }
 
   void _handleRemoveFromCart(int productId) async {
-    final response = await ApiImplementation.removeFromCart(productId.toString());
+    final response = await ApiImplementation.removeFromCart(productId.toString(), showLoader: true);
     if (response.statusCode == 200 || response.statusCode == 201) {
       CustomToast.showToast(message: 'Product removed from bag');
       _fetchCart(silent: true);
@@ -135,9 +145,10 @@ class _BagScreenState extends State<BagScreen> {
     }
 
     final body = {'product_id': productId.toString()};
-    final response = await ApiImplementation.toggleWishlist(body);
+    final response = await ApiImplementation.toggleWishlist(body, showLoader: true);
     if (response.statusCode == 200) {
       _fetchRecommendations(silent: true);
+      _fetchCart(silent: true);
     }
   }
 
@@ -150,9 +161,8 @@ class _BagScreenState extends State<BagScreen> {
         centerTitle: true,
         title: const CustomText(
           text: 'My Bag',
-          fontSize: 20,
+          fontSize: 18,
           fontWeight: FontWeight.bold,
-          fontStyle: FontStyle.italic,
         ),
         actions: [
           IconButton(
@@ -161,6 +171,7 @@ class _BagScreenState extends State<BagScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: _isLoading || _cartItems.isEmpty ? null : _buildStickyBottomBar(),
       child: NotificationListener<ScrollNotification>(
         onNotification: (ScrollNotification notification) {
           if (notification is ScrollUpdateNotification) {
@@ -174,46 +185,65 @@ class _BagScreenState extends State<BagScreen> {
               });
             }
           }
-          if (notification is ScrollEndNotification) {
-            if (_pullDistance > 80) {
-              _onRefresh();
-            }
-          }
           return false;
         },
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            children: [
-              _buildRefreshBanner(),
-              _buildShippingProgress(),
-              if (_isLoading)
-                const Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator(color: Colors.black))
-              else if (_cartItems.isEmpty)
-                Obx(() => _buildEmptyState())
-              else
-                _buildCartList(),
-              _buildCouponSection(),
-              _buildOrderSummary(),
-              _buildRecommendedSection(),
-            ],
-          ),
-        ),
+        child: _isLoading 
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.all(80.0),
+                child: CircularDotLoader(label: ''),
+              ),
+            )
+          : SmartRefresher(
+              controller: _refreshController,
+              onRefresh: _onRefresh,
+              enablePullDown: true,
+              header: CustomHeader(
+                height: 45,
+                refreshStyle: RefreshStyle.Follow,
+                builder: (context, mode) {
+                  String text = 'Pull Down To Refresh';
+                  if (mode == RefreshStatus.refreshing) {
+                    text = 'UPDATING...';
+                  } else if (mode == RefreshStatus.canRefresh) {
+                    text = 'Release To Refresh';
+                  } else if (mode == RefreshStatus.completed) {
+                    text = 'UPDATED';
+                  } else if (mode == RefreshStatus.failed) {
+                    text = 'FAILED';
+                  }
+                  return _buildGreyRefreshBanner(
+                    text,
+                    height: _pullDistance > 45 ? _pullDistance : 45
+                  );
+                },
+              ),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    _buildShippingProgress(),
+                    if (_cartItems.isEmpty)
+                      Obx(() => _buildEmptyState())
+                    else
+                      _buildCartList(),
+                    if (_cartItems.isNotEmpty) ...[
+                      _buildCouponSection(),
+                      _buildOrderSummary(),
+                    ],
+                    _buildRecommendedSection(),
+                  ],
+                ),
+              ),
+            ),
       ),
     );
   }
 
-  Widget _buildRefreshBanner() {
-    String text = '';
-    if (_isRefreshing) {
-      text = 'UPDATING...';
-    } else if (_pullDistance > 10) {
-      text = _pullDistance > 80 ? 'Release To Refresh' : 'Pull Down To Refresh';
-    }
-    if (text.isEmpty) return const SizedBox.shrink();
+  Widget _buildGreyRefreshBanner(String text, {double? height}) {
     return Container(
       width: double.infinity,
-      height: 45,
+      height: height ?? 45,
       color: Colors.grey[100],
       alignment: Alignment.center,
       child: CustomText(text: text, fontSize: 14, textColor: Colors.black45),
@@ -222,55 +252,53 @@ class _BagScreenState extends State<BagScreen> {
 
   Widget _buildShippingProgress() {
     return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFF9F9F9),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
         children: [
-          SizedBox(
-            width: 40,
-            height: 40,
+          const SizedBox(
+            width: 30,
+            height: 30,
             child: CircularProgressIndicator(
-              value: 0.6,
-              strokeWidth: 4,
-              backgroundColor: Colors.grey[300],
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.deepOrangeAccent),
+              value: 0.3,
+              strokeWidth: 3,
+              backgroundColor: Colors.grey,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.orangeAccent),
             ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
+          const SizedBox(width: 12),
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                RichText(
-                  text: const TextSpan(
-                    style: TextStyle(color: Colors.black, fontSize: 14),
-                    children: [
-                      TextSpan(text: 'Add '),
-                      TextSpan(text: 'US\$19.02', style: TextStyle(fontWeight: FontWeight.bold)),
-                      TextSpan(text: ' more to enjoy'),
-                    ],
-                  ),
+                CustomText(
+                  text: 'Add CA\$30.92 more to enjoy',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
                 ),
-                const CustomText(text: 'Free Standard Shipping.', fontSize: 14),
+                CustomText(
+                  text: 'Free Standard Shipping.',
+                  fontSize: 13,
+                  textColor: Colors.black54,
+                ),
               ],
             ),
           ),
-          CustomButton(
-            text: '+ ADD',
-            width: 70,
-            height: 30,
-            fontSize: 12,
-            buttonColor: Colors.white,
-            textColor: Colors.black,
-            borderColor: Colors.black,
-            widthDecoration: 1,
-            borderRadius: 4,
-            padding: EdgeInsets.zero,
-            margin: EdgeInsets.zero,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.black, width: 1),
+              borderRadius: BorderRadius.circular(2),
+            ),
+            child: const CustomText(
+              text: '+ ADD',
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
@@ -329,6 +357,9 @@ class _BagScreenState extends State<BagScreen> {
         final product = item.product;
         return Container(
           padding: const EdgeInsets.all(16),
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -344,34 +375,48 @@ class _BagScreenState extends State<BagScreen> {
                         Expanded(
                           child: CustomText(
                             text: product?.name ?? 'Unknown Product',
-                            fontSize: 14,
-                            maxLine: 2,
+                            fontSize: 13,
+                            maxLine: 1,
+                            overflow: TextOverflow.ellipsis,
                             textColor: Colors.black87,
                           ),
                         ),
-                        const Icon(Icons.favorite_border, size: 20),
+                        IconButton(
+                          icon: const Icon(Icons.favorite_border, size: 20),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () => _handleToggleWishlist(item.productId),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    CustomText(text: 'US\$${item.price?.toStringAsFixed(2) ?? "0.00"}', fontSize: 18, fontWeight: FontWeight.bold),
-                    const SizedBox(height: 8),
+                    CustomText(
+                      text: 'CA\$${item.price?.toStringAsFixed(2) ?? "0.00"}',
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    const SizedBox(height: 4),
+                    const CustomText(
+                      text: '24h Dispatch',
+                      fontSize: 12,
+                      textColor: Colors.orange,
+                    ),
+                    const SizedBox(height: 4),
                     GestureDetector(
                       onTap: () => _showEditBottomSheet(),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const CustomText(text: 'One Size', fontSize: 12), // Placeholder for actual variants
-                            const SizedBox(width: 4),
-                            const Icon(Icons.edit_outlined, size: 14),
-                          ],
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CustomText(text: 'Multi Color | EU36/US6', fontSize: 13),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.edit_outlined, size: 14, color: Colors.grey),
+                        ],
                       ),
+                    ),
+                    const SizedBox(height: 8),
+                    const CustomText(
+                      text: 'Only 9 pcs',
+                      fontSize: 12,
+                      textColor: Colors.red,
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -379,32 +424,28 @@ class _BagScreenState extends State<BagScreen> {
                       children: [
                         GestureDetector(
                           onTap: () => _handleRemoveFromCart(item.productId!),
-                          child: const CustomText(text: 'Remove', fontSize: 12, textColor: Colors.grey, decoration: TextDecoration.underline),
+                          child: const CustomText(
+                            text: 'Remove',
+                            fontSize: 12,
+                            textColor: Colors.black54,
+                            decoration: TextDecoration.underline,
+                          ),
                         ),
-                        Row(
-                          children: [
-                            GestureDetector(
-                              onTap: () => _handleRemoveFromCart(item.productId!),
-                              child: const Icon(Icons.delete_outline, color: Colors.black54, size: 22),
-                            ),
-                            const SizedBox(width: 20),
-                            Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey[300]!),
-                                borderRadius: BorderRadius.circular(4),
+                        Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            children: [
+                              _qtyButton(Icons.delete_outline, () => _handleRemoveFromCart(item.productId!), size: 18),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                child: CustomText(text: '${item.quantity}', fontSize: 14, fontWeight: FontWeight.bold),
                               ),
-                              child: Row(
-                                children: [
-                                  _qtyButton(Icons.remove, () => _handleUpdateQuantity(item.productId!, (item.quantity ?? 1) - 1)),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                                    child: CustomText(text: '${item.quantity}', fontSize: 14),
-                                  ),
-                                  _qtyButton(Icons.add, () => _handleUpdateQuantity(item.productId!, (item.quantity ?? 1) + 1)),
-                                ],
-                              ),
-                            ),
-                          ],
+                              _qtyButton(Icons.add, () => _handleUpdateQuantity(item.productId!, (item.quantity ?? 1) + 1), size: 18),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -418,12 +459,12 @@ class _BagScreenState extends State<BagScreen> {
     );
   }
 
-  Widget _qtyButton(IconData icon, VoidCallback onTap) {
+  Widget _qtyButton(IconData icon, VoidCallback onTap, {double size = 16}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(4),
-        child: Icon(icon, size: 16),
+        padding: const EdgeInsets.all(6),
+        child: Icon(icon, size: size, color: Colors.black),
       ),
     );
   }
@@ -431,34 +472,45 @@ class _BagScreenState extends State<BagScreen> {
   Widget _buildCouponSection() {
     return Container(
       color: Colors.black,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
           Expanded(
             child: Container(
-              height: 45,
+              height: 36,
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.only(topLeft: Radius.circular(4), bottomLeft: Radius.circular(4)),
+                borderRadius: BorderRadius.circular(4),
               ),
               child: const TextField(
                 decoration: InputDecoration(
                   hintText: 'Enter Coupon Code',
+                  hintStyle: TextStyle(fontSize: 14, color: Colors.grey),
                   border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(vertical: 8),
                 ),
               ),
             ),
           ),
-          CustomButton(
-            text: 'APPLY',
-            width: 100,
-            height: 45,
-            borderRadius: 0,
-            buttonColor: Colors.black,
-            borderColor: Colors.white,
-            widthDecoration: 1,
-            margin: EdgeInsets.zero,
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: () {},
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.black,
+                border: Border.all(color: Colors.white),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const CustomText(
+                text: 'APPLY',
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                textColor: Colors.white,
+              ),
+            ),
           ),
         ],
       ),
@@ -469,26 +521,194 @@ class _BagScreenState extends State<BagScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const CustomText(text: 'Subtotal', fontSize: 18, fontWeight: FontWeight.bold),
-              CustomText(text: 'US\$${_cartData?.total?.toStringAsFixed(2) ?? "0.00"}', fontSize: 18, fontWeight: FontWeight.bold),
+              CustomText(
+                text: 'CA\$${_cartData?.total?.toStringAsFixed(2) ?? "0.00"}',
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              CustomText(
+                text: '(Reward 27 R Points)',
+                fontSize: 11,
+                textColor: Colors.orange.shade800,
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.help_outline, size: 14, color: Colors.grey),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              CustomText(text: '${_cartItems.length} Item(s)', fontSize: 14, fontWeight: FontWeight.bold),
+              CustomText(
+                text: 'CA\$${_cartData?.total?.toStringAsFixed(2) ?? "0.00"}',
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              CustomText(text: 'Shipping Cost', fontSize: 14, textColor: Colors.black54),
+              CustomText(text: 'Calculated at next step', fontSize: 14, textColor: Colors.black54),
             ],
           ),
           const SizedBox(height: 20),
-          if (_cartItems.isNotEmpty)
+          const Divider(height: 1),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecommendedSection() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const CustomText(text: 'Recommended', fontSize: 16, fontWeight: FontWeight.bold),
+              GestureDetector(
+                onTap: () => RouteNavigate().navigateToPush(context, const FavoritesScreen()),
+                child: const CustomText(
+                  text: 'My Favorites',
+                  fontSize: 14,
+                  textColor: Colors.grey,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ],
+          ),
+        ),
+        _buildRecommendedGrid(),
+      ],
+    );
+  }
+
+  Widget _buildRecommendedGrid() {
+    if (_recommendations.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child: CustomText(text: 'No recommendations found'),
+      );
+    }
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        childAspectRatio: 0.55,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: _recommendations.length,
+      itemBuilder: (context, index) {
+        final product = _recommendations[index];
+        return GestureDetector(
+          onTap: () => RouteNavigate().navigateToPush(
+            context,
+            ProductDetailScreen(productId: product.id!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Stack(
+                  children: [
+                    NetworkImageView(
+                      url: product.image ?? '',
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    ),
+                    Positioned(
+                      bottom: 6,
+                      right: 6,
+                      child: GestureDetector(
+                        onTap: () => _handleAddToCart(product.id),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            shape: BoxShape.circle,
+                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)],
+                          ),
+                          child: const Icon(Icons.shopping_bag_outlined, size: 16),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 6),
+              CustomText(
+                text: 'CA\$${product.price?.toStringAsFixed(2) ?? "0.00"}', 
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStickyBottomBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: const Border(top: BorderSide(color: Color(0xFFEEEEEE))),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                RichText(
+                  text: TextSpan(
+                    style: const TextStyle(color: Colors.black, fontSize: 14),
+                    children: [
+                      const TextSpan(text: 'Subtotal: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                      TextSpan(
+                        text: 'CA\$${_cartData?.total?.toStringAsFixed(2) ?? "0.00"}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             CustomButton(
               text: 'CHECKOUT',
-              buttonColor: AppColors.blackColor,
-              textColor: AppColors.whiteColor,
-              borderRadius: 0,
-              height: 50,
+              buttonColor: Colors.black,
+              textColor: Colors.white,
+              borderRadius: 4,
+              height: 42,
+              margin: EdgeInsets.zero,
+              padding: EdgeInsets.zero,
               onSubmit: _handleCheckout,
             ),
-          const SizedBox(height: 20),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -506,119 +726,6 @@ class _BagScreenState extends State<BagScreen> {
       context, 
       CheckoutScreen(cartData: _cartData!),
       () => _fetchCart(silent: true),
-    );
-  }
-
-  Widget _buildRecommendedSection() {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const CustomText(text: 'Recommended', fontSize: 18, fontWeight: FontWeight.bold),
-              TextButton(
-                onPressed: () => RouteNavigate().navigateToPush(context, const FavoritesScreen()),
-                child: const CustomText(text: 'My Favorites', textColor: AppColors.grayShade),
-              ),
-            ],
-          ),
-        ),
-        if (_isLoading)
-          const Padding(padding: EdgeInsets.all(40.0), child: CircularProgressIndicator(color: Colors.black))
-        else
-          _buildRecommendedGrid(),
-      ],
-    );
-  }
-
-  Widget _buildRecommendedGrid() {
-    if (_recommendations.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 40),
-        child: CustomText(text: 'No recommendations found'),
-      );
-    }
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.65,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-      ),
-      itemCount: _recommendations.length,
-      itemBuilder: (context, index) {
-        final product = _recommendations[index];
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Stack(
-                children: [
-                  NetworkImageView(
-                    url: product.image ?? '',
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                  ),
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: GestureDetector(
-                      onTap: () => _handleToggleWishlist(product.id),
-                      child: Icon(
-                        product.isFavorite == true ? Icons.favorite : Icons.favorite_border,
-                        color: product.isFavorite == true ? Colors.red : Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 10,
-                    right: 10,
-                    child: GestureDetector(
-                      onTap: () => _handleAddToCart(product.id),
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                        child: const Icon(Icons.add_shopping_cart, size: 20),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            if (product.salePrice != null) ...[
-              Row(
-                children: [
-                  CustomText(
-                    text: 'US\$${product.salePrice!.toStringAsFixed(2)}',
-                    fontWeight: FontWeight.bold,
-                    textColor: Colors.red,
-                  ),
-                  const SizedBox(width: 5),
-                  CustomText(
-                    text: 'US\$${product.price!.toStringAsFixed(2)}',
-                    fontSize: 12,
-                    textColor: Colors.grey,
-                    decoration: TextDecoration.lineThrough,
-                  ),
-                ],
-              )
-            ] else ...[
-              CustomText(
-                text: 'US\$${product.price?.toStringAsFixed(2) ?? "0.00"}', 
-                fontWeight: FontWeight.bold
-              ),
-            ],
-          ],
-        );
-      },
     );
   }
 

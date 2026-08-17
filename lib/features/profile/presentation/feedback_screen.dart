@@ -26,11 +26,12 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   }
 
   Future<void> _fetchFeedbackOptions() async {
-    setState(() => _isLoading = true);
+    if (mounted) setState(() => _isLoading = true);
     try {
-      final response = await ApiImplementation.getFeedbackOptions();
+      final response = await ApiImplementation.getFeedbackOptions(showLoader: false);
       if (response.statusCode == 200) {
         final optionsResponse = FeedbackOptionsResponse.fromJson(jsonDecode(response.body));
+        if (!mounted) return;
         setState(() {
           _suggestionTypes = optionsResponse.data ?? [];
         });
@@ -38,7 +39,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     } catch (e) {
       debugPrint("Error fetching feedback options: $e");
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -143,7 +144,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         ),
       ),
       child: _isLoading 
-          ? const Center(child: CircularProgressIndicator(color: Colors.black))
+          ? const Center(child: CircularDotLoader(label: ''))
           : SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(

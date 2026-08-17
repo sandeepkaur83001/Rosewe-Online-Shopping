@@ -16,7 +16,6 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   final ProfileRepository _repository = ProfileRepository();
   
   ProfileCountryData? _selectedCountry;
-  final TextEditingController _nicknameController = TextEditingController();
   final TextEditingController _genderController = TextEditingController(text: 'Privacy');
   final TextEditingController _birthdayController = TextEditingController(text: '0000-00-00');
 
@@ -34,9 +33,6 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     if (profile != null) {
       if (profile.countryId != null) {
         _selectedCountry = _controller.countries.firstWhereOrNull((c) => c.id == profile.countryId);
-      }
-      if (profile.name != null) {
-        _nicknameController.text = profile.name!;
       }
       if (profile.gender != null) {
         _genderController.text = profile.gender!.capitalizeFirst ?? 'Privacy';
@@ -68,7 +64,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       ),
       child: Obx(() {
         if (_controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: CircularDotLoader(label: ''));
         }
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -79,10 +75,6 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
               _buildReadOnlyField(widget.email),
               const SizedBox(height: 15),
 
-              _buildLabel('Nick Name'),
-              _buildTextField(_nicknameController, 'Enter Nick Name'),
-              const SizedBox(height: 15),
-              
               _buildLabel('Country *'),
               _buildCountryDropdown(),
               const SizedBox(height: 15),
@@ -139,7 +131,6 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       final body = {
         'country_id': _selectedCountry!.id,
         'currency_id': _controller.currencies.isNotEmpty ? _controller.currencies.first.id : 1,
-        'name': _nicknameController.text.trim(),
         'gender': _genderController.text.toLowerCase(),
         'birthday': _birthdayController.text,
         'category_ids': _selectedCategories.toList(),
@@ -175,23 +166,6 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
         border: Border.all(color: Colors.grey[300]!),
       ),
       child: CustomText(text: text, fontSize: 14, textColor: Colors.black54),
-    );
-  }
-
-  Widget _buildTextField(TextEditingController controller, String hint) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: TextField(
-        controller: controller,
-        decoration: InputDecoration(
-          hintText: hint,
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        ),
-      ),
     );
   }
 
@@ -335,16 +309,16 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
         });
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primaryColor : Colors.white,
-          border: Border.all(color: isSelected ? Colors.black : Colors.grey[300]!),
+          border: Border.all(color: isSelected ? Colors.transparent : Colors.grey[300]!),
           borderRadius: BorderRadius.circular(4),
         ),
         child: CustomText(
           text: label,
           fontSize: 12,
-          textColor: isSelected ? Colors.white : Colors.black87,
+          textColor: isSelected ? Color(0xffE24D54): Colors.black87,
         ),
       ),
     );

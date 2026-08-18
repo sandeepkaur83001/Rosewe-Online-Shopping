@@ -91,7 +91,7 @@ class ApiImplementation {
   }
 
   static Future<http.Response> updateProfile(Map<String, dynamic> body, {bool showLoader = true}) async {
-    return await ApiService.formPost(ApiEndpoints.profile, body: body, showLoader: showLoader);
+    return await ApiService.put(ApiEndpoints.profile, body: body, showLoader: showLoader);
   }
 
   // --- Address APIs ---
@@ -188,6 +188,14 @@ class ApiImplementation {
 
   static Future<http.Response> toggleWishlist(Map<String, dynamic> body, {bool showLoader = true}) async {
     return await ApiService.formPost(ApiEndpoints.wishlistToggle, body: body, showLoader: showLoader);
+  }
+
+  static Future<http.Response> getDailyCheckInStatus({bool showLoader = true}) async {
+    return await ApiService.get(ApiEndpoints.getDailyCheckIn, headers: ApiService.defaultHeaders, showLoader: showLoader);
+  }
+
+  static Future<http.Response> postDailyCheckIn({bool showLoader = true}) async {
+    return await ApiService.post(ApiEndpoints.getDailyCheckIn, headers: ApiService.defaultHeaders, showLoader: showLoader);
   }
 
   // Legacy/Example placeholders

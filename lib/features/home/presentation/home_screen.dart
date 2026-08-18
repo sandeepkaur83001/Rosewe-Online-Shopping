@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:math';
+import 'package:intl/intl.dart';
 
 import 'package:rosewe_online_shopping/core/common_imports.dart';
 import 'package:rosewe_online_shopping/features/auth/presentation/login_screen.dart';
@@ -63,6 +65,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
     // Initial fetch for the first tab
     _homeController.fetchTabProducts('best_sellers');
+
+    if (_profileController.isLoggedIn.value) {
+      _profileController.fetchDailyCheckInStatus();
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _showNotificationPromo();
@@ -138,6 +144,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     });
 
     await _homeController.refreshData();
+    if (_profileController.isLoggedIn.value) {
+      await _profileController.fetchDailyCheckInStatus();
+    }
 
     if (mounted) {
       setState(() {
@@ -260,11 +269,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     const SizedBox(height: 30),
                     _buildTheNewNewSection(),
                     const SizedBox(height: 20),
-                    _buildDailyCheckInSection(),
-                    const SizedBox(height: 20),
+                    Obx(() => _buildDailyCheckInSection()),
+
                     _buildTabs(),
                     _buildProductGrid(),
-                    const SizedBox(height: 20), 
+                    const SizedBox(height: 20),
+                    _buildFooterImage(),
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),
@@ -293,15 +304,36 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildGreyRefreshBanner(String text, {double? height}) {
+    final bool isRelease = text == 'Release To Refresh';
     return Container(
       width: double.infinity,
       height: height ?? 45,
       color: Colors.grey[200],
       alignment: Alignment.center,
-      child: CustomText(
-        text: text,
-        fontSize: 14,
-        textColor: Colors.black45,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0, end: isRelease ? pi : 0),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            builder: (context, value, child) {
+              return Transform.rotate(
+                angle: value,
+                child: const Icon(
+                  Icons.arrow_circle_down_sharp,
+                  color: Colors.black45,
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 8,),
+          CustomText(
+            text: text,
+            fontSize: 14,
+            textColor: Colors.black45,
+          ),
+        ],
       ),
     );
   }
@@ -410,7 +442,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
             child: NetworkImageView(
               url: banner?.image ?? '',
-              fit: BoxFit.contain,
+              fit: BoxFit.cover ,
               placeholder: Image.asset(
                 'assets/images/banner_effortless_tummy_clear.png',
                 fit: BoxFit.contain,
@@ -639,157 +671,284 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       final products = _homeController.newArrivals;
       if (products.isEmpty) return const SizedBox.shrink();
 
-      return Column(
-        children: [
-          GestureDetector(
-            onTap:(){
-              RouteNavigate().navigateToPush(context, NewInScreen());
+      return Container(
+        decoration:  BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppColors.primaryDarkColor.withAlpha(40),
+              AppColors.primaryDarkColor.withAlpha(30),
+              Colors.transparent,
+            ],
+          ),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 5),
+            GestureDetector(
+              onTap:(){
+                RouteNavigate().navigateToPush(context, NewInScreen());
 
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const CustomText(text: 'The New New', fontSize: 18, fontWeight: FontWeight.bold),
-                      const SizedBox(width: 8),
-                      CustomText(text: '100+ Styles Added!', fontSize: 12, textColor: AppColors.grayShade),
-                    ],
-                  ),
-                  const Icon(Icons.chevron_right, color: AppColors.grayShade),
-                ],
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const CustomText(text: 'The New New', fontSize: 18, fontWeight: FontWeight.bold),
+                        const SizedBox(width: 8),
+                        CustomText(text: '100+ Styles Added!', fontSize: 12, textColor: AppColors.grayShade),
+                      ],
+                    ),
+                    const Icon(Icons.chevron_right, color: AppColors.grayShade),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 15),
-          SizedBox(
-            height: 250,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: products.length,
-                  itemBuilder: (context, index) {
-                final productMap = products[index];
-                final product = NewInProduct.fromJson(productMap);
-                return Container(
-                  width: 150,
-                  margin: const EdgeInsets.only(right: 12),
-                  child: GestureDetector(
-                    onTap: () => RouteNavigate().navigateToPush(
-                      context,
-                      ProductDetailScreen(productId: product.id!),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Stack(
-                            children: [
-                              NetworkImageView(
-                                url: product.image ?? 'https://picsum.photos/id/${index + 20}/300/450',
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                              ),
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: GestureDetector(
-                                  onTap: () => _handleToggleWishlist(product.id),
-                                  child: CircleAvatar(
-                                    radius: 12,
-                                    backgroundColor: Colors.white.withValues(alpha: 0.8),
-                                    child: Icon(
-                                      product.isFavorite == true 
-                                          ? Icons.favorite 
-                                          : Icons.favorite_border, 
-                                      size: 14, 
-                                      color: Colors.red
+            const SizedBox(height: 5),
+            SizedBox(
+              height: 200,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: products.length,
+                    itemBuilder: (context, index) {
+                  final productMap = products[index];
+                  final product = NewInProduct.fromJson(productMap);
+                  return Container(
+                    width: 150,
+                    margin: const EdgeInsets.only(right: 12),
+                    child: GestureDetector(
+                      onTap: () => RouteNavigate().navigateToPush(
+                        context,
+                        ProductDetailScreen(productId: product.id!),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Stack(
+                              children: [
+                                Container(
+                                  color:Colors.red,
+                                  child: NetworkImageView(
+
+                                    url: product.image ?? 'https://picsum.photos/id/${index + 20}/300/450',
+                                    fit: BoxFit.fitWidth,
+                                    width: double.infinity,
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: GestureDetector(
+                                    onTap: () => _handleToggleWishlist(product.id),
+                                    child: CircleAvatar(
+                                      radius: 12,
+                                      backgroundColor: Colors.white.withValues(alpha: 0.8),
+                                      child: Icon(
+                                        product.isFavorite == true
+                                            ? Icons.favorite
+                                            : Icons.favorite_border,
+                                        size: 14,
+                                        color: Colors.red
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                              Positioned(
-                                bottom: 8,
-                                right: 8,
-                                child: CircleAvatar(
-                                  radius: 12,
-                                  backgroundColor: Colors.white.withValues(alpha: 0.8),
-                                  child: const Icon(Icons.shopping_bag_outlined, size: 14),
+                                Positioned(
+                                  bottom: 8,
+                                  right: 8,
+                                  child: CircleAvatar(
+                                    radius: 14,
+                                    backgroundColor: Colors.white.withValues(alpha: 0.8),
+                                    child: const Icon(Icons.shopping_bag_outlined, size: 16,color: Colors.black,),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 5),
-                        CustomText(
-                          text: 'US\$${(product.price ?? (36.98 + index)).toStringAsFixed(2)}',
-                          fontSize: 14, 
-                          fontWeight: FontWeight.bold
-                        ),
-                      ],
+                          const SizedBox(height: 5),
+                          CustomText(
+                            text: 'US\$${(product.price ?? (36.98 + index)).toStringAsFixed(2)}',
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       );
     });
   }
 
   Widget _buildDailyCheckInSection() {
+    final checkIn = _profileController.checkInData.value;
+
     return Container(
       width: double.infinity,
-      color: const Color(0xFFFFF8F8),
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      decoration:  BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.primaryDarkColor.withAlpha(40),
+            AppColors.primaryDarkColor.withAlpha(30),
+            Colors.transparent,
+          ],
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const CustomText(text: 'Daily check-in & Get your Free Gifts', fontSize: 14, fontWeight: FontWeight.bold),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(7, (index) {
-              return Column(
-                children: [
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: index == 0 ? Colors.orange.withOpacity(0.2) : Colors.pink.withOpacity(0.1),
-                    child: CustomText(text: '+${(index + 2) * 10}', fontSize: 10, textColor: Colors.pink),
-                  ),
-                  const SizedBox(height: 8),
-                  CustomText(text: index == 0 ? 'Today' : '08-${11 + index}', fontSize: 10, textColor: AppColors.grayShade),
-                ],
-              );
-            }),
+          const CustomText(
+            text: 'Daily check-in & Get your Free Gifts',
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
+          Stack(
+            children: [
+              Positioned(
+                top: 17,
+                left: 30,
+                right: 30,
+                child: Container(
+                  height: 2.2,
+                  color:  AppColors.primaryDarkColor.withAlpha(20),
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: List.generate(7, (index) {
+                  final day = index + 1;
+                  int reward = (index + 2) * 10; // Default fallback
+                  bool isChecked = false;
+                  bool isToday = false;
+
+                  if (checkIn != null) {
+                    reward = checkIn.rewards?[day.toString()] ?? reward;
+                    isChecked = (checkIn.currentDay ?? 0) >= day &&
+                        (day != checkIn.currentDay || checkIn.checkedInToday == true);
+                    isToday = checkIn.checkedInToday == true
+                        ? (checkIn.currentDay == day)
+                        : ((checkIn.currentDay ?? 0) + 1 == day);
+                  } else {
+                    isToday = index == 0;
+                  }
+
+                  int todayIndex = checkIn != null 
+                      ? (checkIn.checkedInToday == true ? (checkIn.currentDay ?? 1) - 1 : (checkIn.currentDay ?? 0))
+                      : 0;
+
+                  String dateLabel;
+                  if (isToday) {
+                    dateLabel = 'Today';
+                  } else {
+                    DateTime date = DateTime.now().add(Duration(days: index - todayIndex));
+                    dateLabel = DateFormat('MM-dd').format(date);
+                  }
+
+                  return Column(
+                    children: [
+                      // Stack(
+                      //
+                      //   alignment: Alignment.center,
+                      //   children: [
+                          Container(
+                              padding: EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isChecked ?  AppColors.primaryDarkColor :   AppColors.primaryDarkColor.withAlpha(50),
+                            ),
+                            child: isChecked
+                                ?  const Icon(Icons.check, size: 24, color: AppColors.whiteColor)
+                                : Center(
+                                    child: CustomText(
+                                      text: '+$reward',
+                                      fontSize: 16,
+                                      textColor: Colors.black,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                          ),
+                          // if (index == 2) // Mocking the $15 badge from screenshot
+                          //   Positioned(
+                          //     bottom: -8,
+                          //     child: Container(
+                          //       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          //       decoration: BoxDecoration(
+                          //         color: const Color(0xFFF98E70),
+                          //         borderRadius: BorderRadius.circular(4),
+                          //       ),
+                          //       child: const CustomText(text: '\$15', fontSize: 8, textColor: Colors.white),
+                          //     ),
+                          //   ),
+                      //   ],
+                      // ),
+                      const SizedBox(height: 20),
+                      CustomText(
+                        text: dateLabel,
+                        fontSize: 13,
+                        textColor: isToday ? Colors.black : Colors.grey,
+                        fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ],
+                  );
+                }),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
           Center(
             child: CustomButton(
-              text: 'Check In',
-              width: 200,
-              height: 40,
-              buttonColor: AppColors.blackColor,
-              borderRadius: 4,
-              onSubmit: () {},
+              text: (checkIn?.checkedInToday ?? false) ? 'Checked In' : 'Check In',
+              width: 180,
+              height: 44,
+              buttonColor: (checkIn?.checkedInToday ?? false) ? Colors.grey : Colors.black,
+              borderRadius: 6,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              onSubmit: () {
+                if (!_profileController.isLoggedIn.value) {
+                  CustomToast.showToast(message: 'Please sign in to check in');
+                  RouteNavigate().navigateToPush(context, const LoginScreen());
+                  return;
+                }
+                if (!(checkIn?.checkedInToday ?? false)) {
+                  _profileController.performDailyCheckIn();
+                }
+              },
             ),
           ),
-
-          const SizedBox(height: 10),
-
+          const SizedBox(height: 16),
           Row(
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              CustomText(text: "To explore more functionalities, please chick on "),
+              const CustomText(
+                text: "To explore more functionalities, please click on ",
+                fontSize: 14,
+              ),
               GestureDetector(
                 onTap: () => RouteNavigate().navigateToPush(context, const PointsMallScreen()),
-                child: const CustomText(text: "View More.", isUnderline: true),
+                child: const CustomText(
+                  text: "View More.",
+                  isUnderline: true,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
               )
             ],
           )
-
         ],
       ),
     );
@@ -799,6 +958,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     return TabBar(
       controller: _tabController,
       isScrollable: true,
+      tabAlignment: TabAlignment.start,
       labelColor: AppColors.blackColor,
       unselectedLabelColor: AppColors.grayShade,
       indicatorColor: AppColors.blackColor,
@@ -934,6 +1094,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildFooterImage() {
+    return Image.asset(
+      'assets/images/footer_image.png',
+      width: double.infinity,
+      fit: BoxFit.fitWidth,
     );
   }
 }

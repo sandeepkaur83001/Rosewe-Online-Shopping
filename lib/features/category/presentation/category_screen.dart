@@ -1,4 +1,6 @@
+import 'dart:math';
 import 'package:rosewe_online_shopping/core/common_imports.dart';
+import 'package:rosewe_online_shopping/features/bag/presentation/bag_screen.dart';
 import 'package:rosewe_online_shopping/features/search/presentation/search_screen.dart';
 import 'package:rosewe_online_shopping/features/favorites/presentation/favorites_screen.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
@@ -83,7 +85,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
             padding: const EdgeInsets.only(right: 8.0),
             child: IconButton(
               icon: Image.asset("assets/images/bag_icon.png", width: 24, height: 24, color: AppColors.blackColor),
-              onPressed: () {},
+              onPressed: () {
+                RouteNavigate().navigateToPush(context, BagScreen());
+              },
             ),
           ),
         ],
@@ -129,7 +133,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
             },
           ),
         ),
-      ),
+
     );
   }
 
@@ -152,15 +156,36 @@ class _CategoryScreenState extends State<CategoryScreen> {
   }
 
   Widget _buildGreyRefreshBanner(String text, {double? height}) {
+    final bool isRelease = text == 'Release To Refresh';
     return Container(
       width: double.infinity,
       height: height ?? 45,
       color: Colors.grey[200],
       alignment: Alignment.center,
-      child: CustomText(
-        text: text,
-        fontSize: 14,
-        textColor: Colors.black45,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0, end: isRelease ? pi : 0),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            builder: (context, value, child) {
+              return Transform.rotate(
+                angle: value,
+                child: const Icon(
+                  Icons.arrow_circle_down_sharp,
+                  color: Colors.black45,
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+          CustomText(
+            text: text,
+            fontSize: 14,
+            textColor: Colors.black45,
+          ),
+        ],
       ),
     );
   }

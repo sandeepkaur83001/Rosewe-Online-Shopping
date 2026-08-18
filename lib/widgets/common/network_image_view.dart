@@ -22,8 +22,13 @@ class NetworkImageView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    String finalUrl = url;
+    if (!url.startsWith('http')) {
+      finalUrl = '${EnvConfig.baseUrlPhoto}$url';
+    }
+
     Widget image = CachedNetworkImage(
-      imageUrl: url,
+      imageUrl: finalUrl,
       width: width,
       height: height,
       fit: fit,

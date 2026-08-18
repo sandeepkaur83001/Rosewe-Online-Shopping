@@ -1,7 +1,9 @@
 import 'package:rosewe_online_shopping/core/common_imports.dart';
 import 'package:get/get.dart';
 import 'package:rosewe_online_shopping/features/profile/data/models/profile_model.dart';
+import 'package:rosewe_online_shopping/features/profile/data/models/daily_checkin_model.dart';
 import 'package:rosewe_online_shopping/features/profile/data/repository/profile_repository.dart';
+import 'package:rosewe_online_shopping/widgets/common/checkin_success_dialog.dart';
 
 class ProfileController extends GetxController {
   final ProfileRepository _repository = ProfileRepository();
@@ -10,6 +12,9 @@ class ProfileController extends GetxController {
   var userProfile = Rxn<UserProfile>();
   var errorMessage = ''.obs;
   var isLoggedIn = false.obs;
+
+  var checkInData = Rxn<DailyCheckInData>();
+  var remainingSpins = 0.obs;
 
   var categories = <ProfileCategoryData>[].obs;
   var styles = <ProfileStyleData>[].obs;
@@ -40,11 +45,74 @@ class ProfileController extends GetxController {
 
     await Future.wait([
       fetchProfile(showLoader: false),
+      fetchDailyCheckInStatus(showLoader: false),
       fetchCategories(),
       fetchStyles(),
       fetchCountries(),
       fetchCurrencies(),
     ]);
+  }
+
+  Future<void> fetchDailyCheckInStatus({bool showLoader = false}) async {
+    try {
+      final response = await _repository.getDailyCheckInStatus(showLoader: showLoader);
+      if (response != null && response.status == 200) {
+        checkInData.value = response.data;
+        _updateRemainingSpins();
+      }
+    } catch (e) {
+      debugPrint("Error fetching check-in status: $e");
+    }
+  }
+
+  void _updateRemainingSpins() async {
+    if (checkInData.value?.checkedInToday == true) {
+      final prefs = await SharedPreferences.getInstance();
+      final lastSpinDate = prefs.getString('last_spin_date');
+      final today = DateTime.now().toIso8601String().split('T')[0];
+      
+      if (lastSpinDate != today) {
+        remainingSpins.value = 1;
+      } else {
+        remainingSpins.value = 0;
+      }
+    } else {
+      remainingSpins.value = 0;
+    }
+  }
+
+  Future<void> useSpin() async {
+    if (remainingSpins.value > 0) {
+      remainingSpins.value = 0;
+      final prefs = await SharedPreferences.getInstance();
+      final today = DateTime.now().toIso8601String().split('T')[0];
+      await prefs.setString('last_spin_date', today);
+    }
+  }
+
+  Future<void> performDailyCheckIn() async {
+    try {
+      final response = await _repository.postDailyCheckIn(showLoader: true);
+      if (response != null && response.status == 200) {
+        // Re-fetch the full status to get updated rewards map and checked_in_today flag
+        await fetchDailyCheckInStatus(showLoader: false);
+        
+        if (Get.context != null) {
+          showDialog(
+            context: Get.context!,
+            builder: (context) => CheckInSuccessDialog(
+              points: response.data?.pointsEarned ?? 0,
+              days: response.data?.day ?? 0,
+            ),
+          );
+        }
+      } else {
+        Get.snackbar("Error", response?.message ?? "Failed to check in");
+      }
+    } catch (e) {
+      debugPrint("Error performing check-in: $e");
+      Get.snackbar("Error", "An unexpected error occurred");
+    }
   }
 
   Future<void> fetchCategories() async {

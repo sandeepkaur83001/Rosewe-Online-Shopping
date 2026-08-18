@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:rosewe_online_shopping/core/common_imports.dart';
 import 'package:rosewe_online_shopping/features/auth/presentation/login_screen.dart';
+import 'package:rosewe_online_shopping/features/profile/data/repository/profile_repository.dart';
 import 'package:rosewe_online_shopping/features/profile/presentation/about_rosewe_screen.dart';
 import 'package:rosewe_online_shopping/features/profile/presentation/country_selection_screen.dart';
 import 'package:rosewe_online_shopping/features/profile/presentation/currency_selection_screen.dart';
@@ -23,6 +24,7 @@ class AccountSettingsScreen extends StatefulWidget {
 
 class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   final ProfileController _controller = Get.find<ProfileController>();
+  final ProfileRepository _repository = ProfileRepository();
   String _selectedCountry = 'United States';
   String _selectedCurrency = 'USD';
   String _cacheSize = '0.00 MB';
@@ -31,6 +33,36 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   void initState() {
     super.initState();
     _calculateCacheSize();
+    _initializeSettings();
+  }
+
+  void _initializeSettings() {
+    final profile = _controller.userProfile.value;
+    if (profile != null) {
+      if (profile.countryId != null) {
+        final country = _controller.countries.firstWhereOrNull((c) => c.id == profile.countryId);
+        if (country != null) _selectedCountry = country.name ?? 'United States';
+      }
+    }
+  }
+
+  Future<void> _updatePushNotification(bool enable) async {
+    final status = enable ? 'on' : 'off';
+    final body = {
+      'push_enable': status,
+    };
+
+    try {
+      final success = await _repository.updateProfile(body, showLoader: true);
+      if (success) {
+        await _controller.fetchProfile(showLoader: false);
+        CustomToast.showToast(message: 'Push notifications updated to $status');
+      } else {
+        CustomToast.showToast(message: 'Failed to update push notifications');
+      }
+    } catch (e) {
+      debugPrint("Error updating push notification: $e");
+    }
   }
 
   Future<void> _calculateCacheSize() async {
@@ -225,7 +257,50 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               }),
             ]),
             _buildGroup([
-              _settingsItem(context, 'Push Notifications', value: 'OFF'),
+              _settingsItem(
+                context, 
+                'Push Notifications', 
+                value: (_controller.userProfile.value?.pushEnable ?? 'off').toUpperCase(),
+                onTap: () {
+                  if (!_controller.isLoggedIn.value) {
+                    RouteNavigate().navigateToPush(context, const LoginScreen());
+                    return;
+                  }
+                  
+                  Get.bottomSheet(
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CustomText(text: 'Push Notifications', fontSize: 18, fontWeight: FontWeight.bold),
+                          const SizedBox(height: 20),
+                          ListTile(
+                            title: const CustomText(text: 'ON', fontSize: 16),
+                            onTap: () {
+                              Get.back();
+                              _updatePushNotification(true);
+                            },
+                          ),
+                           Divider(height: 1,color: Colors.grey.withAlpha(60),),
+                          ListTile(
+                            title: const CustomText(text: 'OFF', fontSize: 16),
+                            onTap: () {
+                              Get.back();
+                              _updatePushNotification(false);
+                            },
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      ),
+                    )
+                  );
+                }
+              ),
               _settingsItem(context, 'About Rosewe', onTap: () {
                 RouteNavigate().navigateToPush(context, const AboutRoseweScreen());
               }),

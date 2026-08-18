@@ -1,4 +1,8 @@
+import 'dart:async';
+import 'dart:math';
+import 'package:intl/intl.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter_fortune_wheel/flutter_fortune_wheel.dart';
 import 'package:rosewe_online_shopping/core/common_imports.dart';
 import 'package:rosewe_online_shopping/features/auth/presentation/login_screen.dart';
 import 'package:get/get.dart';
@@ -13,6 +17,13 @@ class PointsMallScreen extends StatefulWidget {
 
 class _PointsMallScreenState extends State<PointsMallScreen> {
   final ProfileController _profileController = Get.find<ProfileController>();
+  final StreamController<int> _selected = StreamController<int>.broadcast();
+
+  @override
+  void dispose() {
+    _selected.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,23 +43,38 @@ class _PointsMallScreenState extends State<PointsMallScreen> {
           fontWeight: FontWeight.bold,
         ),
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildDailyCheckInCard(),
-            const SizedBox(height: 20),
-            _buildSpinWheelSection(),
-            const SizedBox(height: 20),
-            _buildRedeemCouponHeader(),
-            _buildCouponList(),
-            const SizedBox(height: 40),
-          ],
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFFDE2DC),
+              Color(0xFFF7F7F7),
+            ],
+            stops: [0.0, 0.5],
+          ),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              _buildDailyCheckInCard(),
+              const SizedBox(height: 20),
+              _buildSpinWheelSection(),
+              const SizedBox(height: 20),
+              _buildRedeemCouponHeader(),
+              _buildCouponList(),
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildDailyCheckInCard() {
+    final checkIn = _profileController.checkInData.value;
+
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
@@ -57,70 +83,148 @@ class _PointsMallScreenState extends State<PointsMallScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(7, (index) {
-              final isToday = index == 0;
-              final points = 20 + (index * 10);
-              return Column(
-                children: [
-                  Stack(
-                    alignment: Alignment.center,
+          RichText(
+            text: TextSpan(
+              style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
+              children: [
+                const TextSpan(text: 'My Points: '),
+                TextSpan(
+                  text: '${checkIn?.totalPoints ?? 0} = \$${((checkIn?.totalPoints ?? 0) / 100).toStringAsFixed(2)}',
+                  style: const TextStyle(color: Color(0xFFF98E70)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Stack(
+            children: [
+              Positioned(
+                top: 20,
+                left: 30,
+                right: 30,
+                child: Container(
+                  height: 1,
+                  color: Colors.orange.withOpacity(0.3),
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: List.generate(7, (index) {
+                  final day = index + 1;
+                  int reward = (index + 2) * 10;
+                  bool isChecked = false;
+                  bool isToday = false;
+
+                  if (checkIn != null) {
+                    reward = checkIn.rewards?[day.toString()] ?? reward;
+                    isChecked = (checkIn.currentDay ?? 0) >= day &&
+                        (day != checkIn.currentDay || checkIn.checkedInToday == true);
+                    isToday = checkIn.checkedInToday == true
+                        ? (checkIn.currentDay == day)
+                        : ((checkIn.currentDay ?? 0) + 1 == day);
+                  } else {
+                    isToday = index == 0;
+                  }
+
+                  int todayIndex = checkIn != null 
+                      ? (checkIn.checkedInToday == true ? (checkIn.currentDay ?? 1) - 1 : (checkIn.currentDay ?? 0))
+                      : 0;
+
+                  String dateLabel;
+                  if (isToday) {
+                    dateLabel = 'Today';
+                  } else {
+                    DateTime date = DateTime.now().add(Duration(days: index - todayIndex));
+                    dateLabel = DateFormat('MM-dd').format(date);
+                  }
+
+                  return Column(
                     children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: isToday ? const Color(0xFFFFDAB9).withValues(alpha: 0.3) : const Color(0xFFF5F5F5),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: CustomText(
-                            text: '+$points',
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            textColor: Colors.black87,
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: isChecked
+                                  ? const Color(0xFFF98E70)
+                                  : (isToday ? const Color(0xFFFFE0E5) : const Color(0xFFF5F5F5)),
+                              shape: BoxShape.circle,
+                              border: isToday && !(checkIn?.checkedInToday ?? false)
+                                  ? Border.all(color: const Color(0xFFF98E70), width: 2)
+                                  : null,
+                            ),
+                            child: Center(
+                              child: isChecked
+                                  ? const Icon(Icons.check, size: 20, color: Colors.white)
+                                  : CustomText(
+                                      text: '+$reward',
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      textColor: isToday ? const Color(0xFFFF4D6D) : Colors.black87,
+                                    ),
+                            ),
                           ),
-                        ),
+                          if (index == 2) // Mocking the $15 badge from screenshot
+                            Positioned(
+                              top: -12,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF98E70).withOpacity(0.8),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const CustomText(text: '\$15', fontSize: 8, textColor: Colors.white),
+                              ),
+                            ),
+                        ],
                       ),
-                      if (isToday)
-                        const Positioned(
-                          top: -5,
-                          child: Icon(Icons.workspace_premium, size: 16, color: Colors.orange),
-                        ),
+                      const SizedBox(height: 8),
+                      CustomText(
+                        text: dateLabel,
+                        fontSize: 10,
+                        textColor: isToday ? Colors.black : Colors.grey,
+                        fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                      ),
                     ],
-                  ),
-                  const SizedBox(height: 8),
-                  CustomText(
-                    text: isToday ? 'Today' : '08-${18 + index}',
-                    fontSize: 10,
-                    textColor: Colors.grey,
-                  ),
-                ],
-              );
-            }),
+                  );
+                }),
+              ),
+            ],
           ),
           const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const CustomText(text: 'Rules', fontSize: 12, textColor: Colors.grey, isUnderline: true),
-              CustomButton(
-                text: 'Log In',
-                width: 100,
-                height: 36,
-                buttonColor: AppColors.blackColor,
-                borderRadius: 4,
-                onSubmit: () => RouteNavigate().navigateToPush(context, const LoginScreen()),
-              ),
+              Obx(() => CustomButton(
+                    text: _profileController.isLoggedIn.value
+                        ? ((checkIn?.checkedInToday ?? false) ? 'Checked In' : 'Check In')
+                        : 'Log In',
+                    width: 120,
+                    height: 32,
+                    buttonColor: (checkIn?.checkedInToday ?? false) ? const Color(0xFFCCCCCC) : AppColors.blackColor,
+                    borderRadius: 2,
+                    fontSize: 14,
+                    onSubmit: () {
+                      if (!_profileController.isLoggedIn.value) {
+                        RouteNavigate().navigateToPush(context, const LoginScreen());
+                      } else if (!(checkIn?.checkedInToday ?? false)) {
+                        _profileController.performDailyCheckIn();
+                      }
+                    },
+                  )),
+              const SizedBox(width: 40), // Spacing to match screenshot
             ],
           ),
         ],
@@ -129,84 +233,227 @@ class _PointsMallScreenState extends State<PointsMallScreen> {
   }
 
   Widget _buildSpinWheelSection() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      child: Column(
-        children: [
-          Align(
-            alignment: Alignment.centerRight,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.pink.shade50,
-                borderRadius: const BorderRadius.only(topLeft: Radius.circular(20), bottomLeft: Radius.circular(20)),
+    final List<String> labels = [
+      "FREE GIFT",
+      "100 R POINTS",
+      "THANKS",
+      "50 R POINTS",
+      "FREE GIFT",
+      "US\$3 OFF\nover US\$39",
+      "100 R POINTS",
+      "US\$12 OFF\nOVER US\$99",
+    ];
+
+    return Column(
+      children: [
+        Stack(
+          alignment: Alignment.bottomCenter,
+          children: [
+            Container(
+              width: 320,
+              height: 120,
+              decoration: const BoxDecoration(
+                color: Color(0xFFFDE8E8),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(160)),
               ),
-              child: const CustomText(text: 'Rules', fontSize: 12, textColor: Colors.black54),
             ),
+            Column(
+              children: [
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      width: 330,
+                      height: 330,
+                      padding: const EdgeInsets.all(10),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
+                      ),
+                      child: FortuneWheel(
+                        selected: _selected.stream,
+                        animateFirst: false,
+                        indicators: const [],
+                        items: [
+                          for (int i = 0; i < labels.length; i++)
+                            FortuneItem(
+                              child: Padding(
+                                padding: const EdgeInsets.only(left: 35),
+                                child: Text(
+                                  labels[i],
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: i % 2 != 0 ? Colors.white : const Color(0xFFB91C1C),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              style: FortuneItemStyle(
+                                color: i % 2 != 0 ? const Color(0xFFF98E70) : const Color(0xFFFEE2E2),
+                                borderColor: Colors.white,
+                                borderWidth: 2,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () async {
+                        if (!_profileController.isLoggedIn.value) {
+                          RouteNavigate().navigateToPush(context, const LoginScreen());
+                          return;
+                        }
+                        if (_profileController.remainingSpins.value <= 0) {
+                          CustomToast.showToast(message: 'Already used your free spin today!');
+                          return;
+                        }
+                        await _profileController.useSpin();
+                        _selected.add(Fortune.randomInt(0, labels.length));
+                      },
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          RotatedBox(
+                            quarterTurns: 2,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Icon(
+                                  Icons.location_on,
+                                  color: Colors.white,
+                                  size: 80,
+                                ),
+                                Icon(
+                                  Icons.location_on,
+                                  color: Colors.grey,
+                                  size: 70,
+                                ),
+                              ],
+                            )
+                          ),
+                          Positioned(
+                            bottom: 12,
+                            child: Container(
+                              width: 36,
+                              height: 36,
+                              decoration:  BoxDecoration(color: Colors.grey, shape: BoxShape.circle,
+
+                              ),
+                              alignment: Alignment.center,
+                              child: const CustomText(text: 'SPIN', fontSize: 12, fontWeight: FontWeight.bold, textColor: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 15),
+                Obx(() => CustomText(
+                      text: 'Number of Free Draws Remaining: ${_profileController.remainingSpins.value}',
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    )),
+                const SizedBox(height: 20),
+              ],
+            ),
+          ],
+        ),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFFDE8E8)),
           ),
-          const SizedBox(height: 20),
-          // Simple Wheel Placeholder
-          Stack(
-            alignment: Alignment.center,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              Container(
-                width: 300,
-                height: 300,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.pink.shade100, width: 8),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFFF1F1), Colors.white],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                ),
-                child: CustomPaint(
-                  painter: _WheelPainter(),
-                ),
-              ),
-              Container(
-                width: 60,
-                height: 60,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
-                ),
-                child: const Center(
-                  child: CustomText(text: 'SPIN', fontWeight: FontWeight.bold, textColor: Colors.grey),
+              const CustomText(text: '50 Points/Per Spin', fontSize: 14, fontWeight: FontWeight.w500),
+              Container(width: 1, height: 20, color: Colors.grey.shade300),
+              RichText(
+                text: TextSpan(
+                  style: const TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.w500),
+                  children: [
+                    const TextSpan(text: 'Your Points: '),
+                    TextSpan(
+                      text: '${_profileController.checkInData.value?.totalPoints ?? 0}',
+                      style: const TextStyle(color: Color(0xFFF98E70), fontWeight: FontWeight.bold),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          RichText(
-            text: TextSpan(
-              style: const TextStyle(color: Colors.black, fontSize: 14),
-              children: [
-                TextSpan(
-                  text: 'Login',
-                  style: const TextStyle(fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
-                  recognizer: TapGestureRecognizer()..onTap = () => RouteNavigate().navigateToPush(context, const LoginScreen()),
+        ),
+        const SizedBox(height: 20),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: CustomButton(
+                  text: 'Rules >',
+                  buttonColor: const Color(0xFFF98E70),
+                  borderRadius: 20,
+                  height: 36,
+                  fontSize: 13,
+                  onSubmit: () {},
                 ),
-                const TextSpan(text: ' to spin the Wheel!'),
-              ],
-            ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 7,
+                child: CustomButton(
+                  text: 'My Winning Records >',
+                  buttonColor: const Color(0xFFF98E70),
+                  borderRadius: 20,
+                  height: 36,
+                  fontSize: 13,
+                  onSubmit: () {},
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildRedeemCouponHeader() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      child: Column(
         children: [
-          const CustomText(text: 'Redeem Coupon', fontSize: 18, fontWeight: FontWeight.bold),
-          const SizedBox(width: 8),
-          Icon(Icons.help_outline, size: 18, color: Colors.grey.shade400),
+          Row(
+            children: [
+              const CustomText(text: 'Redeem Coupon', fontSize: 18, fontWeight: FontWeight.bold),
+              const SizedBox(width: 8),
+              Icon(Icons.help_outline, size: 18, color: Colors.grey.shade400),
+            ],
+          ),
+          const SizedBox(height: 15),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF9F9),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFFDE8E8)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.confirmation_num_outlined, size: 20, color: Colors.black87),
+                const SizedBox(width: 10),
+                const CustomText(text: 'My Coupons', fontSize: 14, fontWeight: FontWeight.w500),
+                const Spacer(),
+                const Icon(Icons.chevron_right, size: 20, color: Colors.grey),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -234,132 +481,135 @@ class _PointsMallScreenState extends State<PointsMallScreen> {
 
   Widget _buildCouponCard(Map<String, dynamic> coupon) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF9F9),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.pink.shade50),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 4))],
       ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          children: [
+            // Side cutouts
+            Positioned(
+              left: -10,
+              top: 75,
+              child: Container(width: 20, height: 20, decoration: const BoxDecoration(color: Color(0xFFF7F7F7), shape: BoxShape.circle)),
+            ),
+            Positioned(
+              right: -10,
+              top: 75,
+              child: Container(width: 20, height: 20, decoration: const BoxDecoration(color: Color(0xFFF7F7F7), shape: BoxShape.circle)),
+            ),
+            Column(
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
                     children: [
-                      CustomText(text: coupon['value'], fontSize: 22, fontWeight: FontWeight.bold, textColor: Colors.deepOrangeAccent),
-                      CustomText(text: coupon['condition'], fontSize: 12, textColor: Colors.black87),
-                      const SizedBox(height: 4),
-                      CustomText(text: 'Expired: ${coupon['expiry']}', fontSize: 11, textColor: Colors.grey),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CustomText(text: coupon['value'], fontSize: 24, fontWeight: FontWeight.bold, textColor: const Color(0xFFF98E70)),
+                            const SizedBox(height: 4),
+                            CustomText(text: coupon['condition'], fontSize: 13, textColor: Colors.black87),
+                            const SizedBox(height: 4),
+                            CustomText(text: 'Expired: ${coupon['expiry']}', fontSize: 12, textColor: Colors.grey),
+                          ],
+                        ),
+                      ),
+                      SizedBox(
+                        width: 60,
+                        height: 60,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            CircularProgressIndicator(
+                              value: coupon['left'] / 100,
+                              backgroundColor: Colors.grey[200],
+                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFF98E70)),
+                              strokeWidth: 5,
+                            ),
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CustomText(text: '${coupon['left']}%', fontSize: 11, fontWeight: FontWeight.bold),
+                                const CustomText(text: 'Left', fontSize: 8),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                SizedBox(
-                  width: 60,
-                  height: 60,
-                  child: Stack(
-                    alignment: Alignment.center,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: CustomPaint(
+                    size: const Size(double.infinity, 1),
+                    painter: _DashLinePainter(),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
                     children: [
-                      CircularProgressIndicator(
-                        value: coupon['left'] / 100,
-                        backgroundColor: Colors.grey[200],
-                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.deepOrangeAccent),
-                        strokeWidth: 5,
-                      ),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
+                      CustomText(text: 'Code: ${coupon['code']}', fontSize: 15, fontWeight: FontWeight.bold),
+                      const Spacer(),
+                      Row(
                         children: [
-                          CustomText(text: '${coupon['left']}%', fontSize: 10, fontWeight: FontWeight.bold),
-                          const CustomText(text: 'Left', fontSize: 8),
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(color: Color(0xFFFFD54F), shape: BoxShape.circle),
+                            child: const CustomText(text: 'R', fontSize: 10, fontWeight: FontWeight.bold, textColor: Colors.white),
+                          ),
+                          const SizedBox(width: 6),
+                          CustomText(text: '${coupon['points']}', fontSize: 16, fontWeight: FontWeight.bold, textColor: const Color(0xFFFFD54F)),
                         ],
                       ),
+                      const SizedBox(width: 16),
+                      CustomButton(
+                        text: 'Redeem',
+                        width: 80,
+                        height: 30,
+                        buttonColor: const Color(0xFFCCCCCC),
+                        borderRadius: 2,
+                        fontSize: 13,
+                        padding: EdgeInsets.zero,
+                        margin: EdgeInsets.zero,
+                        onSubmit: () {},
+                      ),
                     ],
                   ),
                 ),
               ],
             ),
-          ),
-           Divider(height: 1,color: Colors.grey.withAlpha(10),),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: Row(
-              children: [
-                CustomText(text: 'Code: ${coupon['code']}', fontSize: 14, fontWeight: FontWeight.bold),
-                const Spacer(),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.2), shape: BoxShape.circle),
-                      child: const CustomText(text: 'R', fontSize: 10, fontWeight: FontWeight.bold, textColor: Colors.orange),
-                    ),
-                    const SizedBox(width: 4),
-                    CustomText(text: '${coupon['points']}', fontSize: 14, fontWeight: FontWeight.bold, textColor: Colors.orange),
-                  ],
-                ),
-                const SizedBox(width: 15),
-                CustomButton(
-                  text: 'Redeem',
-                  width: 90,
-                  height: 32,
-                  buttonColor: AppColors.blackColor,
-                  borderRadius: 4,
-                  fontSize: 12,
-                  padding: EdgeInsets.zero,
-                  margin: EdgeInsets.zero,
-                  onSubmit: () {},
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-class _WheelPainter extends CustomPainter {
+class _DashLinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-    final rect = Rect.fromCircle(center: center, radius: radius);
-
-    final colors = [
-      const Color(0xFFFDE8E8),
-      const Color(0xFFF9CACA),
-      const Color(0xFFFDE8E8),
-      const Color(0xFFF9CACA),
-      const Color(0xFFFDE8E8),
-      const Color(0xFFF9CACA),
-      const Color(0xFFFDE8E8),
-      const Color(0xFFF9CACA),
-    ];
-
-    final double angle = (2 * pi) / 8;
-
-    for (int i = 0; i < 8; i++) {
-      final paint = Paint()
-        ..color = colors[i]
-        ..style = PaintingStyle.fill;
-      
-      canvas.drawArc(rect, i * angle, angle, true, paint);
-    }
-
-    // Add some text-like lines for segments
-    final linePaint = Paint()..color = Colors.deepOrangeAccent.withValues(alpha: 0.3)..strokeWidth = 1;
-    for (int i = 0; i < 8; i++) {
-      canvas.save();
-      canvas.translate(center.dx, center.dy);
-      canvas.rotate(i * angle + angle / 2);
-      canvas.drawLine(Offset(radius * 0.4, 0), Offset(radius * 0.8, 0), linePaint);
-      canvas.restore();
+    var paint = Paint()
+      ..color = Colors.grey.withOpacity(0.2)
+      ..strokeWidth = 1;
+    var max = size.width;
+    var dashWidth = 5;
+    var dashSpace = 3;
+    double startX = 0;
+    while (startX < max) {
+      canvas.drawLine(Offset(startX, 0), Offset(startX + dashWidth, 0), paint);
+      startX += dashWidth + dashSpace;
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
+

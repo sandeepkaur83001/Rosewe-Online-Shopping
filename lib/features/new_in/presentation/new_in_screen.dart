@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:rosewe_online_shopping/core/common_imports.dart';
 import 'package:rosewe_online_shopping/models/home/new_in_model.dart';
 import 'package:intl/intl.dart';
@@ -151,20 +152,41 @@ class _NewInScreenState extends State<NewInScreen> {
             ),
           ),
         ),
-      ),
-    );
+      );
+
   }
 
   Widget _buildGreyRefreshBanner(String text, {double? height}) {
+    final bool isRelease = text == 'Release To Refresh';
     return Container(
       width: double.infinity,
       height: height ?? 45,
       color: Colors.grey[200],
       alignment: Alignment.center,
-      child: CustomText(
-        text: text,
-        fontSize: 14,
-        textColor: Colors.black45,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0, end: isRelease ? pi : 0),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            builder: (context, value, child) {
+              return Transform.rotate(
+                angle: value,
+                child: const Icon(
+                  Icons.arrow_circle_down_sharp,
+                  color: Colors.black45,
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+          CustomText(
+            text: text,
+            fontSize: 14,
+            textColor: Colors.black45,
+          ),
+        ],
       ),
     );
   }

@@ -56,8 +56,12 @@ class CustomImage extends StatelessWidget {
           color: color,
         );
       } else if (type == 3) {
+        String finalUrl = url!;
+        if (!finalUrl.startsWith('http')) {
+          finalUrl = '${EnvConfig.baseUrlPhoto}$finalUrl';
+        }
         return CachedNetworkImage(
-          imageUrl: url!,
+          imageUrl: finalUrl,
           height: height,
           width: width,
           fit: fit,

@@ -37,7 +37,14 @@ class HomeController extends GetxController {
       final response = await ApiImplementation.getProductCollection(type, param: 'type', showLoader: false);
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
-        tabProducts.value = decoded['data'] ?? [];
+        final dynamic data = decoded['data'];
+        if (data is List) {
+          tabProducts.value = data;
+        } else if (data is Map && data['data'] is List) {
+          tabProducts.value = data['data'];
+        } else {
+          tabProducts.clear();
+        }
       }
     } catch (e) {
       debugPrint("Error fetching tab products: $e");

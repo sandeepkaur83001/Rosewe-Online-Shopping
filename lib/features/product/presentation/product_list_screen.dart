@@ -32,9 +32,23 @@ class _ProductListScreenState extends State<ProductListScreen> {
       final response = await ApiImplementation.getProductCollection(widget.categoryId, showLoader: false);
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
-        if (decoded['data'] != null) {
+        final dynamic data = decoded['data'];
+        if (data != null) {
+          List<dynamic> productList = [];
+          if (data is List) {
+            productList = data;
+          } else if (data is Map) {
+            if (data['data'] is List) {
+              productList = data['data'];
+            } else if (data['products'] is List) {
+              productList = data['products'];
+            } else if (data['products'] is Map && data['products']['data'] is List) {
+              productList = data['products']['data'];
+            }
+          }
+          
           setState(() {
-            _products = (decoded['data'] as List)
+            _products = productList
                 .map((i) => NewInProduct.fromJson(i))
                 .toList();
           });

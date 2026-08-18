@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:rosewe_online_shopping/core/common_imports.dart';
 import 'package:rosewe_online_shopping/features/auth/presentation/login_screen.dart';
 import 'package:rosewe_online_shopping/features/profile/presentation/account_settings_screen.dart';
@@ -27,7 +28,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _onRefresh() async {
-    await _controller.fetchProfile();
+    await Future.wait([
+      _controller.fetchProfile(),
+      _controller.fetchDailyCheckInStatus(),
+    ]);
     await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) {
       setState(() {
@@ -87,6 +91,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   padding: EdgeInsets.zero,
                   physics: const AlwaysScrollableScrollPhysics(),
                   children: [
+                    // _buildCheckInSection(),
                     _buildOrderSection(),
                     _buildWalletSection(),
                     _buildTabSection(),
@@ -95,22 +100,153 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ),
-            )],
+            ]
         );
       }),
     );
   }
 
+  Widget _buildCheckInSection() {
+    if (!_controller.isLoggedIn.value) return const SizedBox.shrink();
+    
+    final checkIn = _controller.checkInData.value;
+    if (checkIn == null) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.whiteColor,
+        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          colors: [Colors.orange.shade50, Colors.white],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const CustomText(
+                    text: 'Daily Check-in',
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  const SizedBox(height: 4),
+                  CustomText(
+                    text: 'Current Points: ${checkIn.totalPoints ?? 0}',
+                    fontSize: 13,
+                    textColor: AppColors.grayShade,
+                  ),
+                ],
+              ),
+              ElevatedButton(
+                onPressed: checkIn.checkedInToday == true 
+                    ? null 
+                    : () => _controller.performDailyCheckIn(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: checkIn.checkedInToday == true ? Colors.grey : Colors.orange,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                ),
+                child: Text(checkIn.checkedInToday == true ? 'Checked In' : 'Check In'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: List.generate(7, (index) {
+                final day = index + 1;
+                final reward = checkIn.rewards?[day.toString()] ?? 0;
+                final isToday = checkIn.checkedInToday == true 
+                    ? (checkIn.currentDay == day) 
+                    : ((checkIn.currentDay ?? 0) + 1 == day);
+                final isPassed = (checkIn.currentDay ?? 0) >= day && (day != checkIn.currentDay || checkIn.checkedInToday == true);
+                
+                return Container(
+                  width: 50,
+                  margin: const EdgeInsets.only(right: 8),
+                  child: Column(
+                    children: [
+                      Container(
+                        height: 40,
+                        width: 40,
+                        decoration: BoxDecoration(
+                          color: isPassed
+                              ? Colors.orange.shade200
+                              : Colors.grey.shade100,
+                          shape: BoxShape.circle,
+                          border: isToday && checkIn.checkedInToday == false
+                              ? Border.all(color: Colors.orange, width: 2)
+                              : null,
+                        ),
+                        child: Center(
+                          child: isPassed
+                              ? const Icon(Icons.check, size: 20, color: Colors.orange)
+                              : CustomText(
+                                  text: '+$reward',
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  textColor: Colors.orange,
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      CustomText(
+                        text: isToday ? 'Today' : 'Day $day',
+                        fontSize: 10,
+                        textColor: isToday ? Colors.black : AppColors.grayShade,
+                        fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildGreyRefreshBanner(String text, {double? height}) {
+    final bool isRelease = text == 'Release To Refresh';
     return Container(
       width: double.infinity,
       height: height ?? 45,
       color: Colors.grey[200],
       alignment: Alignment.center,
-      child: CustomText(
-        text: text,
-        fontSize: 14,
-        textColor: Colors.black45,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0, end: isRelease ? pi : 0),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            builder: (context, value, child) {
+              return Transform.rotate(
+                angle: value,
+                child: const Icon(
+                  Icons.arrow_circle_down_sharp,
+                  color: Colors.black45,
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+          CustomText(
+            text: text,
+            fontSize: 14,
+            textColor: Colors.black45,
+          ),
+        ],
       ),
     );
   }
@@ -258,51 +394,95 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildTabSection() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => _selectedTab = 0),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: _selectedTab == 0 ? AppColors.whiteColor : const Color(0xFFE0E0E0),
-                  borderRadius: const BorderRadius.only(topLeft: Radius.circular(12)),
-                ),
-                child: Center(
-                  child: CustomText(
-                    text: 'My Favorites',
-                    fontSize: 16,
-                    fontWeight: _selectedTab == 0 ? FontWeight.bold : FontWeight.normal,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFFE0E0E0),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(12),
+            topRight: Radius.circular(12),
+          ),
+        ),
+        child: Row(
+          children: [
+            // My Favorites
+            Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => _selectedTab = 0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: _selectedTab == 0
+                        ? AppColors.whiteColor
+                        : Colors.transparent,
+                    borderRadius: _selectedTab == 0
+                        ? const BorderRadius.only(
+                      topLeft: Radius.circular(12),
+                      topRight: Radius.circular(12),
+
+
+                    )
+                        : const BorderRadius.only(
+                      topLeft: Radius.circular(12),
+
+                    ),
+                  ),
+                  child: Center(
+                    child: CustomText(
+                      text: 'My Favorites',
+                      fontSize: 16,
+                      fontWeight: _selectedTab == 0
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => _selectedTab = 1),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: _selectedTab == 1 ? AppColors.whiteColor : const Color(0xFFE0E0E0),
-                  borderRadius: const BorderRadius.only(topRight: Radius.circular(12)),
-                ),
-                child: Center(
-                  child: CustomText(
-                    text: 'You May Also Like',
-                    fontSize: 16,
-                    fontWeight: _selectedTab == 1 ? FontWeight.bold : FontWeight.normal,
+
+            // You May Also Like
+            Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => _selectedTab = 1),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: _selectedTab == 1
+                        ? AppColors.whiteColor
+                        : Colors.transparent,
+                    borderRadius: _selectedTab == 1
+                        ? const BorderRadius.only(
+                      topLeft: Radius.circular(12),
+                      topRight: Radius.circular(12),
+
+                    )
+                        : const BorderRadius.only(
+                      topRight: Radius.circular(12),
+
+                    ),
+                  ),
+                  child: Center(
+                    child: CustomText(
+                      text: 'You May Also Like',
+                      fontSize: 16,
+                      fontWeight: _selectedTab == 1
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
+
+
+
+
+
 
   Widget _buildFavoritesContent() {
     return Container(
@@ -366,5 +546,105 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: CustomText(text: 'Suggestions appear here'),
       ),
     );
+  }
+}
+
+
+class TabShapeClipper extends CustomClipper<Path> {
+  final bool isLeftSelected;
+
+  TabShapeClipper({required this.isLeftSelected});
+
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+
+    const radius = 12.0;
+
+    if (isLeftSelected) {
+      // Start top-left
+      path.moveTo(radius, 0);
+
+      // Top edge
+      path.lineTo(size.width - radius, 0);
+
+      // Top-right rounded corner
+      path.quadraticBezierTo(
+        size.width,
+        0,
+        size.width,
+        radius,
+      );
+
+      // Right side
+      path.lineTo(size.width, size.height - radius);
+
+      // Bottom-right rounded corner
+      path.quadraticBezierTo(
+        size.width,
+        size.height,
+        size.width - radius,
+        size.height,
+      );
+
+      // Bottom edge
+      path.lineTo(radius, size.height);
+
+      // Bottom-left rounded corner
+      path.quadraticBezierTo(
+        0,
+        size.height,
+        0,
+        size.height - radius,
+      );
+
+      // Left side
+      path.lineTo(0, radius);
+
+      // Top-left rounded corner
+      path.quadraticBezierTo(
+        0,
+        0,
+        radius,
+        0,
+      );
+    } else {
+      // Start top-left
+      path.moveTo(0, 0);
+
+      // Top edge
+      path.lineTo(size.width - radius, 0);
+
+      // Top-right
+      path.quadraticBezierTo(
+        size.width,
+        0,
+        size.width,
+        radius,
+      );
+
+      // Right side
+      path.lineTo(size.width, size.height - radius);
+
+      // Bottom-right
+      path.quadraticBezierTo(
+        size.width,
+        size.height,
+        size.width - radius,
+        size.height,
+      );
+
+      // Bottom edge
+      path.lineTo(0, size.height);
+
+      path.close();
+    }
+
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant TabShapeClipper oldClipper) {
+    return oldClipper.isLeftSelected != isLeftSelected;
   }
 }

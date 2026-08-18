@@ -21,6 +21,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
 
   final Set<int> _selectedCategories = {};
   final Set<int> _selectedStyles = {};
+  bool _isInitialized = false;
 
   @override
   void initState() {
@@ -37,15 +38,20 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       if (profile.gender != null) {
         _genderController.text = profile.gender!.capitalizeFirst ?? 'Privacy';
       }
-      if (profile.birthday != null) {
+      if (profile.birthday != null && profile.birthday != '0000-00-00') {
         _birthdayController.text = profile.birthday!;
       }
+      
+      _selectedCategories.clear();
       if (profile.favoriteCategoryIds != null) {
         _selectedCategories.addAll(profile.favoriteCategoryIds!);
       }
+      
+      _selectedStyles.clear();
       if (profile.favoriteStyleIds != null) {
         _selectedStyles.addAll(profile.favoriteStyleIds!);
       }
+      _isInitialized = true;
     }
   }
 
@@ -66,6 +72,12 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
         if (_controller.isLoading.value) {
           return const Center(child: CircularDotLoader(label: ''));
         }
+
+        // Ensure data is initialized when profile is loaded
+        if (!_isInitialized && _controller.userProfile.value != null) {
+          _initializeData();
+        }
+
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(

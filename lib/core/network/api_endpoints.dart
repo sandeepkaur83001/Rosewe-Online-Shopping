@@ -44,5 +44,5 @@ class ApiEndpoints {
   static const String getCategories = "categories/list";
   static const String categoryTree = "categories/tree";
   static const String getBanners = "marketing/banners";
-  static const String getDailyCheckIn = "user/daily-checkin";
+  static const String getDailyCheckIn = "daily-checkin";
 }

@@ -14,6 +14,7 @@ class UserProfile {
   final String? birthday;
   final List<int>? favoriteCategoryIds;
   final List<int>? favoriteStyleIds;
+  final String? pushEnable;
 
   UserProfile({
     this.id,
@@ -31,6 +32,7 @@ class UserProfile {
     this.birthday,
     this.favoriteCategoryIds,
     this.favoriteStyleIds,
+    this.pushEnable,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -38,6 +40,37 @@ class UserProfile {
       if (value == null) return null;
       if (value is num) return value.toDouble();
       if (value is String) return double.tryParse(value);
+      return null;
+    }
+
+    int? parseInt(dynamic value) {
+      if (value == null) return null;
+      if (value is int) return value;
+      if (value is String) return int.tryParse(value);
+      return null;
+    }
+
+    List<int>? extractIds(dynamic json, String key, String idKey, String altIdKey) {
+      if (json[key] != null) {
+        return List<int>.from(json[key]);
+      }
+      
+      String listKey = key.replaceAll('_ids', 's');
+      if (key == 'category_ids') listKey = 'categories';
+
+      if (json[listKey] != null && json[listKey] is List) {
+        return (json[listKey] as List)
+            .map((e) {
+              if (e is int) return e;
+              if (e is Map) {
+                return parseInt(e['id']) ?? parseInt(e[altIdKey]) ?? parseInt(e['pivot']?[altIdKey]) ?? -1;
+              }
+              return -1;
+            })
+            .where((id) => id != -1)
+            .cast<int>()
+            .toList();
+      }
       return null;
     }
 
@@ -55,8 +88,9 @@ class UserProfile {
       currencyId: json['currency_id'],
       gender: json['gender'],
       birthday: json['birthday'],
-      favoriteCategoryIds: json['category_ids'] != null ? List<int>.from(json['category_ids']) : null,
-      favoriteStyleIds: json['style_ids'] != null ? List<int>.from(json['style_ids']) : null,
+      favoriteCategoryIds: extractIds(json, 'category_ids', 'id', 'category_id'),
+      favoriteStyleIds: extractIds(json, 'style_ids', 'id', 'style_id'),
+      pushEnable: json['push_enable'],
     );
   }
 
@@ -77,6 +111,7 @@ class UserProfile {
       'birthday': birthday,
       'category_ids': favoriteCategoryIds,
       'style_ids': favoriteStyleIds,
+      'push_enable': pushEnable,
     };
   }
 }
